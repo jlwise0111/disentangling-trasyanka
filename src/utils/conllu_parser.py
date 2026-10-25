@@ -1,7 +1,8 @@
+import re
 import sys
 import conllu
 from pathlib import Path
-from collections import Counter
+from collections import Counter, defaultdict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(PROJECT_ROOT))
@@ -22,8 +23,21 @@ BE_FILES = [
     "data/raw/be_hse-ud-train.conllu",
     "data/raw/be_hse-ud-test.conllu",
 ]
-RU_VOCAB_PATH = "data/dictionaries/ru_vocab.txt"
-BE_VOCAB_PATH = "data/dictionaries/be_vocab.txt"
+# Vocabularies come from training data only: the UD test splits are held out, and so are
+# the Taraškievica sentences, which form the orthographic-shift test set
+RU_VOCAB_FILES = [f for f in RU_FILES if "-test" not in f]
+BE_VOCAB_FILES = [f for f in BE_FILES if "-test" not in f]
+BE_VOCAB_SKIP_ORTHOGRAPHIES = {"tarask"}
+RU_VOCAB_PATH = "data/dictionaries/ru_vocab_train.txt"
+BE_VOCAB_PATH = "data/dictionaries/be_vocab_train.txt"
+
+# The HSE treebank mixes the official orthography (Narkamaŭka) and Taraškievica.
+# Spellings only Taraškievica uses: soft signs before consonants (сьвет, зьмена),
+# the preposition "зь", and loan-word spellings (плян, клюб, Эўропа, нэа-)
+TARASK_RE = re.compile(r"(сьв|зьв|сьл|зьл|сьн|зьн|ньн|зьдз|сьп|зьб|цьв|дзьв)"
+                       r"|\b(зь|сьвет\w*|плян\w*|клюб\w*|лягер\w*|эўроп\w*|бэрлін\w*|нэа\w*)\b", re.IGNORECASE)
+# The same clusters written without the soft sign, as the official orthography does (свет, змена)
+OFFICIAL_RE = re.compile(r"(?<!ь)(св[еяёі]|зв[еяёі]|сн[еяёі]|зн[еяёі]|сц[еяёі]|сл[еяёі]|зл[еяёі])", re.IGNORECASE)
 
 
 def load_conllu_file(filename):
@@ -45,9 +59,10 @@ def is_word_token(token):
     )
 
 
-def build_or_load_vocab(relative_paths, cache_relative_path):
+def build_or_load_vocab(relative_paths, cache_relative_path, skip_orthographies=()):
     """
-    Builds a Latin-script vocabulary of word forms from raw conllu files.
+    Builds a Latin-script vocabulary of word forms from raw conllu files,
+    leaving out sentences whose orthography is in skip_orthographies (Belarusian only).
     Caches it to a text file; an empty cache file is treated as missing.
     """
 
@@ -62,7 +77,11 @@ def build_or_load_vocab(relative_paths, cache_relative_path):
     vocab = set()
 
     for path in relative_paths:
-        for sentence in load_conllu_file(path):
+        sentences = load_conllu_file(path)
+        orthographies = assign_orthographies(sentences) if skip_orthographies else [None] * len(sentences)
+        for sentence, orthography in zip(sentences, orthographies):
+            if orthography in skip_orthographies:
+                continue
             for token in sentence:
                 if is_word_token(token):
                     vocab.add(cyrillic_to_latin(token["form"]))
@@ -108,18 +127,80 @@ def is_html_artifact(token):
     return "<" in token or ">" in token
 
 
+def text_source(sent_id):
+    """Text collection a sentence comes from: "radyjosvaboda-926" -> "radyjosvaboda"."""
+    return re.sub(r"[-_].*", "", re.sub(r"[-_]?\d.*$", "", sent_id or "")).lower()
+
+
+def orthography_markers(sentence):
+    """(text collection, has Taraškievica spellings, has official spellings) for one sentence."""
+    text = sentence.metadata.get("text") or ""
+    return (text_source(sentence.metadata.get("sent_id")),
+            bool(TARASK_RE.search(text)), bool(OFFICIAL_RE.search(text)))
+
+
+_SOURCE_VERDICTS = None
+
+
+def source_orthographies():
+    """
+    Orthography of each Belarusian text collection, decided once over all BE_FILES
+    (the test file alone has too few sentences of some collections).
+    """
+    global _SOURCE_VERDICTS
+    if _SOURCE_VERDICTS is None:
+        per_source = defaultdict(lambda: [0, 0, 0])  # sentences, with tarask spellings, with official spellings
+        for path in BE_FILES:
+            for sentence in load_conllu_file(path):
+                source, tarask, official = orthography_markers(sentence)
+                counts = per_source[source]
+                counts[0] += 1
+                counts[1] += tarask
+                counts[2] += official
+
+        _SOURCE_VERDICTS = {}
+        for source, (n, tarask, official) in per_source.items():
+            if tarask / n >= 0.05 and official / n < 0.01:
+                _SOURCE_VERDICTS[source] = "tarask"
+            elif tarask / n < 0.02:
+                _SOURCE_VERDICTS[source] = "official"
+            else:
+                _SOURCE_VERDICTS[source] = "unknown"
+    return _SOURCE_VERDICTS
+
+
+def assign_orthographies(sentences):
+    """
+    Labels each Belarusian sentence "official", "tarask" or "unknown".
+    A sentence with spellings of only one orthography gets that one; otherwise it
+    inherits the verdict for its whole text collection (most sentences have no
+    telling spelling at all). Collections that mix both leave such sentences "unknown".
+    """
+    verdicts = source_orthographies()
+    labels = []
+    for source, tarask, official in map(orthography_markers, sentences):
+        if tarask and not official:
+            labels.append("tarask")
+        elif official and not tarask:
+            labels.append("official")
+        else:
+            labels.append(verdicts.get(source, "unknown"))
+    return labels
+
+
 def process_treebank(path, source_language, ru_vocab=None, be_vocab=None, with_metadata=False):
     """
     Returns one entry per sentence. By default each entry is a list of token
     dicts; with_metadata=True wraps it as {"id", "source", "split", "lang",
-    "text", "tokens"}.
+    "orthography", "text", "tokens"} (orthography is None for Russian).
     """
     sentences = load_conllu_file(path)
     source = Path(path).name
     split = "test" if "-test" in source else "train"
+    orthographies = assign_orthographies(sentences) if source_language == "BE" else [None] * len(sentences)
     processed_data = []
 
-    for sentence in sentences:
+    for sentence, orthography in zip(sentences, orthographies):
         token_list = []
         for token in sentence:
             if not is_word_token(token):
@@ -148,6 +229,7 @@ def process_treebank(path, source_language, ru_vocab=None, be_vocab=None, with_m
                 "source": source,
                 "split": split,
                 "lang": source_language,
+                "orthography": orthography,
                 "text": sentence.metadata.get("text"),
                 "tokens": token_list,
             })
@@ -158,8 +240,9 @@ def process_treebank(path, source_language, ru_vocab=None, be_vocab=None, with_m
 
 
 def load_both_vocabs():
-    ru_vocab = build_or_load_vocab(RU_FILES, cache_relative_path=RU_VOCAB_PATH)
-    be_vocab = build_or_load_vocab(BE_FILES, cache_relative_path=BE_VOCAB_PATH)
+    ru_vocab = build_or_load_vocab(RU_VOCAB_FILES, cache_relative_path=RU_VOCAB_PATH)
+    be_vocab = build_or_load_vocab(BE_VOCAB_FILES, cache_relative_path=BE_VOCAB_PATH,
+                                   skip_orthographies=BE_VOCAB_SKIP_ORTHOGRAPHIES)
     return ru_vocab, be_vocab
 
 
