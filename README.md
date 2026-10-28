@@ -24,8 +24,20 @@ transcripts (e.g. `гаварыў` → `havaryú`), so training and test words l
 | `utils/cha_parser.py` | Reads the `.cha` transcripts: gold labels, phonetic labels, POS and lemmas from `%mor` |
 | `utils/build_processed.py` | Writes `data/processed/*.jsonl` and `stats.json`, the input for all models |
 | `utils/metrics.py` | Macro-F1, per-label report, confusion matrix |
-| `baseline/ngram_heuristic.py` | Rule-based baseline *(not yet updated for the Latin pipeline)* |
-| `baseline/train_crf.py`, `crf_features.py` | CRF baseline *(not yet updated for the Latin pipeline)* |
+| `baseline/cues.py` | Latin spelling cues and word endings for BE vs RU, chosen from the treebanks |
+| `baseline/splits.py` | Shared training set, the four evaluation sets, scoring and `results/*.json` |
+| `baseline/ngram_heuristic.py` | Rule-based baseline: cues, endings and vocabulary lookups |
+| `baseline/train_crf.py`, `crf_features.py` | CRF baseline (sklearn-crfsuite) |
+
+Models train on RU train + official-orthography BE train (RU sampled to the same size) and are
+evaluated on Trasyanka, the RU test split, the official BE test split and the Taraškievica sentences.
+
+| Macro-F1 | Trasyanka | RU test | BE official test | Taraškievica |
+|---|---|---|---|---|
+| Heuristic | 0.3672 | 0.9215 | 0.5503 | 0.5597 |
+| CRF | 0.4478 | 0.9997* | 0.5958 | 0.5992 |
+
+\* Circular: the CRF's vocabulary features reproduce the rule that made the RU pseudo-labels.
 
 ## Running
 
@@ -35,4 +47,6 @@ From the project root:
 python src/utils/conllu_parser.py     # builds data/dictionaries/ and shows sample labels
 python src/utils/cha_parser.py        # parses one transcript as a demo
 python src/utils/build_processed.py   # writes data/processed/ (about 1 minute)
+python src/baseline/ngram_heuristic.py  # writes results/heuristic.json
+python src/baseline/train_crf.py        # writes results/crf.json (about 2 minutes)
 ```

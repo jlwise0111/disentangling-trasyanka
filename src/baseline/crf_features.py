@@ -1,70 +1,64 @@
+"""
+Feature extraction for the CRF baseline: spelling cues, prefixes and suffixes,
+vocabulary membership, and the same kinds of clues for the neighbouring words.
+"""
 import sys
 from pathlib import Path
 
-BE_UNIGRAMS = set("ўіЎІ")
-RU_UNIGRAMS = set("ъищЪИЩ")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.append(str(PROJECT_ROOT))
+
+from src.baseline.cues import BE_CUES, RU_CUES, BE_ENDINGS, RU_ENDINGS, has_cue, has_ending
+
+PREFIX_LENGTHS = (1, 2, 3)
+SUFFIX_LENGTHS = (1, 2, 3, 4)
 
 
 def token_to_features(sent_tokens, i, ru_vocab=None, be_vocab=None):
     """
-    Extracts rich orthographic, affix, and sequential context features
-    for token at index i in sent_tokens.
+    Feature dict for the word at position i: the word, its cues, endings, vocab
+    membership, prefixes and suffixes, plus a few clues from each neighbour
+    (or BOS / EOS at the sentence edges).
     """
     word = sent_tokens[i]
-    word_lower = word.lower()
 
     features = {
         "bias": 1.0,
-        "word.lower()": word_lower,
-        "word.isupper()": word.isupper(),
-        "word.istitle()": word.istitle(),
-        "word.isdigit()": word.isdigit(),
+        "word": word,
         "length": len(word),
-
-        # Character-level presence indicators
-        "has_be_char": any(c in BE_UNIGRAMS for c in word),
-        "has_ru_char": any(c in RU_UNIGRAMS for c in word),
-
-        # Affix features (lengths 1, 2, 3, 4)
-        "prefix_1": word_lower[:1],
-        "prefix_2": word_lower[:2] if len(word_lower) >= 2 else "",
-        "prefix_3": word_lower[:3] if len(word_lower) >= 3 else "",
-        "suffix_1": word_lower[-1:],
-        "suffix_2": word_lower[-2:] if len(word_lower) >= 2 else "",
-        "suffix_3": word_lower[-3:] if len(word_lower) >= 3 else "",
-        "suffix_4": word_lower[-4:] if len(word_lower) >= 4 else "",
-
-        # Lexicon lookup indicators
-        "in_be_vocab": (be_vocab is not None) and (word_lower in be_vocab),
-        "in_ru_vocab": (ru_vocab is not None) and (word_lower in ru_vocab),
+        "has_be_cue": has_cue(word, BE_CUES),
+        "has_ru_cue": has_cue(word, RU_CUES),
+        "has_be_ending": has_ending(word, BE_ENDINGS),
+        "has_ru_ending": has_ending(word, RU_ENDINGS),
+        "in_be_vocab": be_vocab is not None and word in be_vocab,
+        "in_ru_vocab": ru_vocab is not None and word in ru_vocab,
     }
+    for n in PREFIX_LENGTHS:
+        features[f"prefix_{n}"] = word[:n]
+    for n in SUFFIX_LENGTHS:
+        features[f"suffix_{n}"] = word[-n:]
 
-    # Context feature: Previous token (w_{i-1})
     if i > 0:
-        prev_word = sent_tokens[i - 1]
-        features.update({
-            "-1:word.lower()": prev_word.lower(),
-            "-1:has_be_char": any(c in BE_UNIGRAMS for c in prev_word),
-            "-1:has_ru_char": any(c in RU_UNIGRAMS for c in prev_word),
-            "-1:suffix_2": prev_word.lower()[-2:] if len(prev_word) >= 2 else "",
-        })
+        prev = sent_tokens[i - 1]
+        features["-1:word"] = prev
+        features["-1:suffix_2"] = prev[-2:]
+        features["-1:has_be_cue"] = has_cue(prev, BE_CUES)
+        features["-1:has_ru_cue"] = has_cue(prev, RU_CUES)
     else:
-        features["BOS"] = True  # Beginning of sentence
+        features["BOS"] = True
 
-    # Context feature: Next token (w_{i+1})
     if i < len(sent_tokens) - 1:
-        next_word = sent_tokens[i + 1]
-        features.update({
-            "+1:word.lower()": next_word.lower(),
-            "+1:has_be_char": any(c in BE_UNIGRAMS for c in next_word),
-            "+1:has_ru_char": any(c in RU_UNIGRAMS for c in next_word),
-            "+1:suffix_2": next_word.lower()[-2:] if len(next_word) >= 2 else "",
-        })
+        nxt = sent_tokens[i + 1]
+        features["+1:word"] = nxt
+        features["+1:suffix_2"] = nxt[-2:]
+        features["+1:has_be_cue"] = has_cue(nxt, BE_CUES)
+        features["+1:has_ru_cue"] = has_cue(nxt, RU_CUES)
     else:
-        features["EOS"] = True  # End of sentence
+        features["EOS"] = True
 
     return features
 
 
 def sent_to_features(sent_tokens, ru_vocab=None, be_vocab=None):
+    """Feature dicts for every word of one sentence."""
     return [token_to_features(sent_tokens, i, ru_vocab, be_vocab) for i in range(len(sent_tokens))]

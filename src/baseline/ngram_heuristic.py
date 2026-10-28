@@ -1,107 +1,89 @@
+"""
+Rule-based baseline: labels each word from spelling cues, word endings and the
+two treebank vocabularies. No training; the rules only use treebank knowledge.
+
+Run from the project root:   python src/baseline/ngram_heuristic.py
+Writes results/heuristic.json.
+"""
 import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(PROJECT_ROOT))
 
-from src.utils.metrics import evaluate_predictions, print_evaluation_summary
-from src.utils.cha_parser import load_all_cha_files
-
-# --- Orthographic Invariants ---
-BE_UNIGRAMS = set("ўіЎІ")
-RU_UNIGRAMS = set("ъищЪИЩ")
-
-# Distinctive character n-grams
-BE_NGRAMS = ("дзе", "дзя", "це", "ця", "цца", "аў", "яў")
-RU_NGRAMS = ("тся", "ться", "ого", "его")
-
-
-def load_vocab(rel_path):
-    path = PROJECT_ROOT / rel_path
-    if not path.exists():
-        return set()
-    with open(path, "r", encoding="utf-8") as f:
-        return set(line.strip().lower() for line in f if line.strip())
+from src.utils.conllu_parser import load_both_vocabs
+from src.baseline.cues import BE_CUES, RU_CUES, BE_ENDINGS, RU_ENDINGS, has_cue, has_ending
+from src.baseline.splits import evaluation_sets, evaluate_on_sets, print_macro_f1_table, save_results
 
 
 class NgramHeuristicClassifier:
-    def __init__(self, ru_vocab_path=None, be_vocab_path=None):
-        self.ru_vocab = load_vocab(ru_vocab_path) if ru_vocab_path else set()
-        self.be_vocab = load_vocab(be_vocab_path) if be_vocab_path else set()
+    """Labels words with fixed rules over spelling cues, endings and vocabulary lookups."""
 
-    def predict_token(self, token_text):
-        token = token_text.lower()
+    def __init__(self, ru_vocab, be_vocab):
+        self.ru_vocab = ru_vocab
+        self.be_vocab = be_vocab
 
-        has_be_char = any(c in BE_UNIGRAMS for c in token)
-        has_ru_char = any(c in RU_UNIGRAMS for c in token)
+    def predict_token(self, token):
+        """
+        Labels one lowercase Latin word; the first rule that applies wins.
+        e.g. havariú -> HYBRID, tožy -> BE, ja -> SHARED, jakije -> RU, nada -> SHARED
+        """
+        be_cue = has_cue(token, BE_CUES)
+        ru_cue = has_cue(token, RU_CUES)
+        be_end = has_ending(token, BE_ENDINGS)
+        ru_end = has_ending(token, RU_ENDINGS)
 
-        # 1. Direct character contradiction within single token boundary
-        if has_be_char and has_ru_char:
+        # 1. cues from both languages
+        if be_cue and ru_cue:
             return "HYBRID"
 
-        # 2. Check n-gram morpheme clues
-        has_be_ngram = any(ng in token for ng in BE_NGRAMS)
-        has_ru_ngram = any(ng in token for ng in RU_NGRAMS)
-
-        # Hybrid detection: Russian invariant char paired with a Belarusian affix
-        if has_ru_char and has_be_ngram:
-            return "HYBRID"
-        if has_be_char and has_ru_ngram:
+        # 2. a stem from one language, an ending from the other
+        if (ru_cue and be_end) or (be_cue and ru_end):
             return "HYBRID"
 
-        # 3. Pure unigram invariants
-        if has_be_char:
+        # 3. a cue from only one language (rules 1–2 already caught "both")
+        if be_cue:
             return "BE"
-        if has_ru_char:
+        if ru_cue:
             return "RU"
 
-        # 4. Lexicon matching
+        # 4. no cues at all: look the word up
         in_be = token in self.be_vocab
         in_ru = token in self.ru_vocab
-
         if in_be and in_ru:
             return "SHARED"
-        if in_be and not in_ru:
+        if in_be:
             return "BE"
-        if in_ru and not in_be:
+        if in_ru:
             return "RU"
 
-        # 5. N-gram fallbacks if word is out-of-vocabulary
-        if has_be_ngram and not has_ru_ngram:
+        # 5. not in either vocabulary: fall back to endings
+        if be_end and not ru_end:
             return "BE"
-        if has_ru_ngram and not has_be_ngram:
+        if ru_end and not be_end:
             return "RU"
 
+        # 6. nothing fired
         return "SHARED"
 
     def predict_sentence(self, tokens):
-        """Predicts tags for a list of token strings."""
+        """Labels a list of words."""
         return [self.predict_token(t) for t in tokens]
 
     def predict_corpus(self, sentences):
-        """
-        sentences: List[List[str]]
-        Returns: List[List[str]]
-        """
+        """Labels a list of sentences (each a list of words)."""
         return [self.predict_sentence(s) for s in sentences]
 
 
+def main():
+    """Evaluates the heuristic on every evaluation set and saves results/heuristic.json."""
+    ru_vocab, be_vocab = load_both_vocabs()
+    classifier = NgramHeuristicClassifier(ru_vocab, be_vocab)
+    results = evaluate_on_sets(classifier.predict_corpus, evaluation_sets())
+    print_macro_f1_table("heuristic", results)
+    print(results["trasyanka"]["report"])
+    save_results("heuristic", results)
+
+
 if __name__ == "__main__":
-    # 1. Initialize classifier
-    classifier = NgramHeuristicClassifier(
-        ru_vocab_path="data/dictionaries/ru_vocab.txt",
-        be_vocab_path="data/dictionaries/be_vocab.txt"
-    )
-
-    # 2. Ingest ALL .cha files under data/raw/
-    raw_data_dir = "data/raw"
-    chat_data = load_all_cha_files(raw_data_dir)
-
-    # 3. Extract sequences
-    test_tokens = [[tok["cyrillic"] for tok in utt["tokens"]] for utt in chat_data]
-    y_true = [[tok["lang_label"] for tok in utt["tokens"]] for utt in chat_data]
-
-    # 4. Predict and evaluate
-    y_pred = classifier.predict_corpus(test_tokens)
-    results = evaluate_predictions(y_true, y_pred)
-    print_evaluation_summary(results, model_name="Rule/N-gram Heuristic Baseline (Full Corpus)")
+    main()
