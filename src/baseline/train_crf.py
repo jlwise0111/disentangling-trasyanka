@@ -40,7 +40,7 @@ def main():
     crf.fit(X_train, y_train)
     print(f"Trained in {time.time() - start:.0f}s")
 
-    # Defined here so it can use crf and the vocabularies; evaluate_on_sets calls it once per set
+    # Defined here, so it can use crf and the vocabularies; evaluate_on_sets calls it once per set
     def predict_sentences(token_lists):
         """Token lists -> predicted label lists."""
         return crf.predict([sent_to_features(tokens, ru_vocab, be_vocab) for tokens in token_lists])
