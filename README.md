@@ -15,6 +15,20 @@ on transcribed Trasyanka speech, labelling every word as `BE`, `RU`, `SHARED` or
 All three are converted to one shared Latin spelling, the one used by the Trasyanka
 transcripts (e.g. `гаварыў` → `havaryú`), so training and test words look alike.
 
+### Getting the data
+
+`data/raw/` is not tracked in git. Put these files directly in `data/raw/` (no subfolders
+needed for the treebanks):
+
+1. **UD Russian-SynTagRus**: from [UD_Russian-SynTagRus](https://github.com/UniversalDependencies/UD_Russian-SynTagRus),
+   copy `ru_syntagrus-ud-train-a.conllu`, `-train-b.conllu`, `-train-c.conllu` and `ru_syntagrus-ud-test.conllu`.
+2. **UD Belarusian-HSE**: from [UD_Belarusian-HSE](https://github.com/UniversalDependencies/UD_Belarusian-HSE),
+   copy `be_hse-ud-train.conllu` and `be_hse-ud-test.conllu`.
+3. **Oldenburg Trasyanka corpus**: TODO: add source/access instructions. Copy all
+   `fam_*.cha` files (444 transcripts) into `data/raw/`.
+
+The file names must match exactly; `src/utils/conllu_parser.py` lists the treebank paths.
+
 ## Code (`src/`)
 
 | File | What it does |
