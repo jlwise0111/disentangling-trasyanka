@@ -24,8 +24,11 @@ needed for the treebanks):
    copy `ru_syntagrus-ud-train-a.conllu`, `-train-b.conllu`, `-train-c.conllu` and `ru_syntagrus-ud-test.conllu`.
 2. **UD Belarusian-HSE**: from [UD_Belarusian-HSE](https://github.com/UniversalDependencies/UD_Belarusian-HSE),
    copy `be_hse-ud-train.conllu` and `be_hse-ud-test.conllu`.
-3. **Oldenburg Trasyanka corpus**: TODO: add source/access instructions. Copy all
-   `fam_*.cha` files (444 transcripts) into `data/raw/`.
+3. **Oldenburg corpus of Belarusian-Russian mixed speech** (OC-BRMS / OK-WRGR;
+   Hentschel, Zeller & Tesch, University of Oldenburg, BIS-Verlag, ISBN 978-3-8142-2305-6):
+   the [project page](https://uol.de/en/slavistik/forschung/sprachwissenschaft/bereich-mischvarietaeten/oc-brms)
+   links to the download and the documentation. The code expects the CHAT version: copy all
+   `fam_*.cha` files (444 transcripts, 7 families) into `data/raw/`.
 
 The file names must match exactly; `src/utils/conllu_parser.py` lists the treebank paths.
 
@@ -39,7 +42,7 @@ The file names must match exactly; `src/utils/conllu_parser.py` lists the treeba
 | `utils/build_processed.py` | Writes `data/processed/*.jsonl` and `stats.json`, the input for all models |
 | `utils/metrics.py` | Macro-F1, per-label report, confusion matrix |
 | `baseline/cues.py` | Latin spelling cues and word endings for BE vs RU, chosen from the treebanks |
-| `baseline/splits.py` | Shared training set, the four evaluation sets, scoring and `results/*.json` |
+| `baseline/splits.py` | Training settings, Oldenburg family split, evaluation sets, scoring and `results/*.json` |
 | `baseline/ngram_heuristic.py` | Rule-based baseline: cues, endings and vocabulary lookups |
 | `baseline/train_crf.py`, `crf_features.py` | CRF baseline (sklearn-crfsuite) |
 
@@ -52,6 +55,29 @@ evaluated on Trasyanka, the RU test split, the official BE test split and the Ta
 | CRF | 0.4478 | 0.9997* | 0.5958 | 0.5992 |
 
 \* Circular: the CRF's vocabulary features reproduce the rule that made the RU pseudo-labels.
+
+### Oldenburg family split
+
+The Oldenburg corpus is split by family, never by utterance, so the same speakers and
+conversations never appear in both training and test:
+
+| Part | Families | Words | HYBRID |
+|---|---|---|---|
+| train | `fam_ak`, `fam_ch`, `fam_mi`, `fam_sm` | 121,213 | 2,544 |
+| dev | `fam_sh` | 23,069 | 396 |
+| test | `fam_ba`, `fam_ra` | 56,475 | 1,205 |
+
+Training settings: **zero-shot** (treebanks only), **in-domain** (Oldenburg train families) and
+**mixed** (both), plus a learning curve over 10 / 30 / 70 % of the train-family transcripts.
+Every setting is compared on `trasyanka_test`. The Checkpoint 1 table above scores all of Trasyanka.
+
+## Requirements
+
+Python 3.13 with `conllu`, `numpy`, `scikit-learn` and `sklearn-crfsuite`:
+
+```
+pip install conllu numpy scikit-learn sklearn-crfsuite
+```
 
 ## Running
 
