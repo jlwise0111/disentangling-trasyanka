@@ -28,6 +28,7 @@ sys.path.append(str(PROJECT_ROOT))
 
 from src.utils.conllu_parser import process_treebank, load_both_vocabs, RU_FILES, BE_FILES
 from src.utils.cha_parser import load_all_cha_files
+from src.utils.translit import latin_to_cyrillic
 
 OUT_DIR = "data/processed"
 DATASETS = ["russian", "belarusian", "trasyanka"]
@@ -121,6 +122,8 @@ def build_trasyanka(keep_unlabeled=False):
             "mor_aligned": utterance["mor_aligned"],
             **columns(utterance["tokens"], TRASYANKA_FIELDS),
         })
+        records[-1]["cyrillic"] = [latin_to_cyrillic(word) for word in records[-1]["tokens"]]
+
     return records
 
 
