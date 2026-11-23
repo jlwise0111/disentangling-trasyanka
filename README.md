@@ -46,6 +46,7 @@ The file names must match exactly; `src/utils/conllu_parser.py` lists the treeba
 | `baseline/ngram_heuristic.py` | Rule-based baseline: cues, endings and vocabulary lookups |
 | `baseline/train_crf.py`, `crf_features.py` | CRF baseline (sklearn-crfsuite) |
 | `model/data.py` | Character vocabulary, padded batches and masks for the BiLSTM (PyTorch) |
+| `model/bilstm.py` | Hierarchical BiLSTM: character BiLSTM per word, word BiLSTM per sentence |
 
 Models train on RU train + official-orthography BE train (RU sampled to the same size) and are
 evaluated on Trasyanka, the RU test split, the official BE test split and the Taraškievica sentences.
