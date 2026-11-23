@@ -45,6 +45,7 @@ The file names must match exactly; `src/utils/conllu_parser.py` lists the treeba
 | `baseline/splits.py` | Training settings, Oldenburg family split, evaluation sets, scoring and `results/*.json` |
 | `baseline/ngram_heuristic.py` | Rule-based baseline: cues, endings and vocabulary lookups |
 | `baseline/train_crf.py`, `crf_features.py` | CRF baseline (sklearn-crfsuite) |
+| `model/data.py` | Character vocabulary, padded batches and masks for the BiLSTM (PyTorch) |
 
 Models train on RU train + official-orthography BE train (RU sampled to the same size) and are
 evaluated on Trasyanka, the RU test split, the official BE test split and the Taraškievica sentences.
@@ -73,10 +74,10 @@ Every setting is compared on `trasyanka_test`. The Checkpoint 1 table above scor
 
 ## Requirements
 
-Python 3.13 with `conllu`, `numpy`, `scikit-learn` and `sklearn-crfsuite`:
+Python 3.13. The versions are pinned in `requirements.txt`; PyTorch is the CPU build:
 
 ```
-pip install conllu numpy scikit-learn sklearn-crfsuite
+pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 ```
 
 ## Running
