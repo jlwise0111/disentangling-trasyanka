@@ -1,0 +1,149 @@
+{
+  "trasyanka": {
+    "macro_f1": 0.3478,
+    "weighted_f1": 0.5052,
+    "labels": [
+      "BE",
+      "RU",
+      "SHARED",
+      "HYBRID"
+    ],
+    "confusion_matrix": [
+      [
+        25059,
+        2220,
+        9756,
+        0
+      ],
+      [
+        30430,
+        13153,
+        14956,
+        0
+      ],
+      [
+        29888,
+        7462,
+        63688,
+        0
+      ],
+      [
+        3482,
+        466,
+        197,
+        0
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          BE     0.2820    0.6766    0.3981     37035\n          RU     0.5645    0.2247    0.3214     58539\n      SHARED     0.7189    0.6303    0.6717    101038\n      HYBRID     0.0000    0.0000    0.0000      4145\n\n    accuracy                         0.5076    200757\n   macro avg     0.3913    0.3829    0.3478    200757\nweighted avg     0.5784    0.5076    0.5052    200757\n"
+  },
+  "trasyanka_test": {
+    "macro_f1": 0.3651,
+    "weighted_f1": 0.5219,
+    "labels": [
+      "BE",
+      "RU",
+      "SHARED",
+      "HYBRID"
+    ],
+    "confusion_matrix": [
+      [
+        7225,
+        639,
+        2525,
+        0
+      ],
+      [
+        8100,
+        4585,
+        4044,
+        0
+      ],
+      [
+        8142,
+        2421,
+        17589,
+        0
+      ],
+      [
+        983,
+        167,
+        55,
+        0
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          BE     0.2955    0.6954    0.4148     10389\n          RU     0.5869    0.2741    0.3737     16729\n      SHARED     0.7264    0.6248    0.6718     28152\n      HYBRID     0.0000    0.0000    0.0000      1205\n\n    accuracy                         0.5206     56475\n   macro avg     0.4022    0.3986    0.3651     56475\nweighted avg     0.5903    0.5206    0.5219     56475\n"
+  },
+  "russian_test": {
+    "macro_f1": 0.981,
+    "weighted_f1": 0.9836,
+    "labels": [
+      "RU",
+      "SHARED"
+    ],
+    "confusion_matrix": [
+      [
+        85954,
+        873
+      ],
+      [
+        1120,
+        37731
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          RU     0.9871    0.9885    0.9878     86956\n      SHARED     0.9774    0.9711    0.9742     38854\n\n   micro avg     0.9841    0.9831    0.9836    125810\n   macro avg     0.9823    0.9798    0.9810    125810\nweighted avg     0.9841    0.9831    0.9836    125810\n"
+  },
+  "belarusian_official_test": {
+    "macro_f1": 0.7055,
+    "weighted_f1": 0.9802,
+    "labels": [
+      "BE",
+      "RU",
+      "SHARED"
+    ],
+    "confusion_matrix": [
+      [
+        7009,
+        18,
+        151
+      ],
+      [
+        1,
+        2,
+        0
+      ],
+      [
+        28,
+        1,
+        2384
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          BE     0.9959    0.9765    0.9861      7178\n          RU     0.0952    0.6667    0.1667         3\n      SHARED     0.9404    0.9880    0.9636      2413\n\n    accuracy                         0.9793      9594\n   macro avg     0.6772    0.8770    0.7055      9594\nweighted avg     0.9817    0.9793    0.9802      9594\n"
+  },
+  "taraskievica": {
+    "macro_f1": 0.6682,
+    "weighted_f1": 0.9757,
+    "labels": [
+      "BE",
+      "RU",
+      "SHARED"
+    ],
+    "confusion_matrix": [
+      [
+        73135,
+        258,
+        1593
+      ],
+      [
+        38,
+        12,
+        20
+      ],
+      [
+        616,
+        25,
+        24300
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          BE     0.9911    0.9753    0.9832     74986\n          RU     0.0407    0.1714    0.0658        70\n      SHARED     0.9378    0.9743    0.9557     24941\n\n    accuracy                         0.9745     99997\n   macro avg     0.6565    0.7070    0.6682     99997\nweighted avg     0.9772    0.9745    0.9757     99997\n"
+  }
+}
