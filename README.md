@@ -34,28 +34,28 @@ The file names must match exactly; `src/utils/conllu_parser.py` lists the treeba
 
 ## Code (`src/`)
 
-| File | What it does |
-|---|---|
-| `utils/translit.py` | Cyrillic → shared Latin scheme; cleans the transcription marks in `.cha` words |
-| `utils/conllu_parser.py` | Reads the treebanks, builds Latin vocabularies, assigns pseudo-labels |
-| `utils/cha_parser.py` | Reads the `.cha` transcripts: gold labels, phonetic labels, POS and lemmas from `%mor` |
-| `utils/build_processed.py` | Writes `data/processed/*.jsonl` and `stats.json`, the input for all models |
-| `utils/metrics.py` | Macro-F1, per-label report, confusion matrix |
-| `baseline/cues.py` | Latin spelling cues and word endings for BE vs RU, chosen from the treebanks |
-| `baseline/splits.py` | Training settings, Oldenburg family split, evaluation sets, scoring and `results/*.json` |
-| `baseline/ngram_heuristic.py` | Rule-based baseline: cues, endings and vocabulary lookups |
-| `baseline/train_crf.py`, `crf_features.py` | CRF baseline (sklearn-crfsuite) |
-| `model/data.py` | Character vocabulary, padded batches and masks for the BiLSTM (PyTorch) |
-| `model/bilstm.py` | Hierarchical BiLSTM: character BiLSTM per word, word BiLSTM per sentence |
-| `model/train_bilstm.py` | Trains the BiLSTM per training setting, early stopping on `fam_sh`; writes `results/bilstm*.json` |
+| File                                       | What it does                                                                                      |
+|--------------------------------------------|---------------------------------------------------------------------------------------------------|
+| `utils/translit.py`                        | Cyrillic → shared Latin scheme; cleans the transcription marks in `.cha` words                    |
+| `utils/conllu_parser.py`                   | Reads the treebanks, builds Latin vocabularies, assigns pseudo-labels                             |
+| `utils/cha_parser.py`                      | Reads the `.cha` transcripts: gold labels, phonetic labels, POS and lemmas from `%mor`            |
+| `utils/build_processed.py`                 | Writes `data/processed/*.jsonl` and `stats.json`, the input for all models                        |
+| `utils/metrics.py`                         | Macro-F1, per-label report, confusion matrix                                                      |
+| `baseline/cues.py`                         | Latin spelling cues and word endings for BE vs RU, chosen from the treebanks                      |
+| `baseline/splits.py`                       | Training settings, Oldenburg family split, evaluation sets, scoring and `results/*.json`          |
+| `baseline/ngram_heuristic.py`              | Rule-based baseline: cues, endings and vocabulary lookups                                         |
+| `baseline/train_crf.py`, `crf_features.py` | CRF baseline (sklearn-crfsuite)                                                                   |
+| `model/data.py`                            | Character vocabulary, padded batches and masks for the BiLSTM (PyTorch)                           |
+| `model/bilstm.py`                          | Hierarchical BiLSTM: character BiLSTM per word, word BiLSTM per sentence                          |
+| `model/train_bilstm.py`                    | Trains the BiLSTM per training setting, early stopping on `fam_sh`; writes `results/bilstm*.json` |
 
 Models train on RU train + official-orthography BE train (RU sampled to the same size) and are
 evaluated on Trasyanka, the RU test split, the official BE test split and the Taraškievica sentences.
 
-| Macro-F1 | Trasyanka | RU test | BE official test | Taraškievica |
-|---|---|---|---|---|
-| Heuristic | 0.3672 | 0.9215 | 0.5503 | 0.5597 |
-| CRF | 0.4478 | 0.9997* | 0.5958 | 0.5992 |
+| Macro-F1  | Trasyanka | RU test | BE official test | Taraškievica |
+|-----------|-----------|---------|------------------|--------------|
+| Heuristic | 0.3672    | 0.9215  | 0.5503           | 0.5597       |
+| CRF       | 0.4478    | 0.9997* | 0.5958           | 0.5992       |
 
 \* Circular: the CRF's vocabulary features reproduce the rule that made the RU pseudo-labels.
 
@@ -64,11 +64,11 @@ evaluated on Trasyanka, the RU test split, the official BE test split and the Ta
 The Oldenburg corpus is split by family, never by utterance, so the same speakers and
 conversations never appear in both training and test:
 
-| Part | Families | Words | HYBRID |
-|---|---|---|---|
-| train | `fam_ak`, `fam_ch`, `fam_mi`, `fam_sm` | 121,213 | 2,544 |
-| dev | `fam_sh` | 23,069 | 396 |
-| test | `fam_ba`, `fam_ra` | 56,475 | 1,205 |
+| Part  | Families                               | Words   | HYBRID |
+|-------|----------------------------------------|---------|--------|
+| train | `fam_ak`, `fam_ch`, `fam_mi`, `fam_sm` | 121,213 | 2,544  |
+| dev   | `fam_sh`                               | 23,069  | 396    |
+| test  | `fam_ba`, `fam_ra`                     | 56,475  | 1,205  |
 
 Training settings: **zero-shot** (treebanks only), **in-domain** (Oldenburg train families) and
 **mixed** (both), plus a learning curve over 10 / 30 / 70 % of the train-family transcripts.
