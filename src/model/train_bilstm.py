@@ -28,7 +28,7 @@ sys.path.append(str(PROJECT_ROOT))
 
 from src.utils.metrics import evaluate_predictions
 from src.baseline.splits import (training_sentences, evaluation_sets, evaluate_on_sets, trasyanka_split,
-                                 print_macro_f1_table, save_results,
+                                 print_macro_f1_table, save_results, save_predictions,
                                  TRAINING_SETTINGS, LEARNING_CURVE_FRACTIONS, RANDOM_SEED)
 from src.model.data import build_char_vocab, make_loader, ID_TO_LABEL, PAD_LABEL
 from src.model.bilstm import HierarchicalBiLSTM, NUM_LABELS, count_parameters
@@ -196,6 +196,7 @@ def main():
         print_macro_f1_table(name, results)
         print(results["trasyanka_test"]["report"])
         save_results(name, results)
+        save_predictions(name, sets, results)
 
 
 if __name__ == "__main__":

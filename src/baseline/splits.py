@@ -28,6 +28,7 @@ from src.utils.build_processed import load_processed
 from src.utils.metrics import evaluate_predictions, LABELS
 
 RESULTS_DIR = PROJECT_ROOT / "results"
+PREDICTIONS_DIR = RESULTS_DIR / "predictions"
 RANDOM_SEED = 0
 
 # ---------------------------------------------------------------------------
@@ -142,7 +143,8 @@ def evaluate_on_sets(predict_sentences, sets):
     """
     Scores one model on every set. predict_sentences maps token lists to label lists.
     Macro-F1 averages only over the labels present in that set's gold data.
-    Returns {name: metrics dict from metrics.py}.
+    Returns {name: metrics dict from metrics.py}; each metrics dict also keeps the
+    predicted label lists under "predictions" (for save_predictions; save_results skips them).
     """
     results = {}
     for name, records in sets.items():
@@ -151,6 +153,7 @@ def evaluate_on_sets(predict_sentences, sets):
         # A label with no gold examples (e.g. HYBRID outside Trasyanka) would score 0 and drag the average
         labels = [label for label in LABELS if any(label in sentence_labels for sentence_labels in gold)]
         results[name] = evaluate_predictions(gold, pred, labels=labels)
+        results[name]["predictions"] = [list(sentence) for sentence in pred]
     return results
 
 
@@ -177,4 +180,24 @@ def save_results(model_name, results):
     path = RESULTS_DIR / f"{model_name}.json"
     with open(path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
+    print(f"Saved {path}")
+
+
+def save_predictions(model_name, sets, results, set_name="trasyanka_test"):
+    """
+    Writes results/predictions/<model_name>.jsonl: one line per sentence of `set_name`
+    with its id, family, tokens, gold labels and predicted labels, for word-level analysis
+    (in-vocabulary vs out-of-vocabulary words, error audit).
+    `sets` and `results` are what evaluate_on_sets was given and returned.
+    """
+    PREDICTIONS_DIR.mkdir(parents=True, exist_ok=True)
+    records = sets[set_name]
+    predictions = results[set_name]["predictions"]
+    assert len(records) == len(predictions), "predictions do not match the set's sentences"
+    path = PREDICTIONS_DIR / f"{model_name}.jsonl"
+    with open(path, "w", encoding="utf-8") as f:
+        for record, predicted in zip(records, predictions):
+            line = {"id": record["id"], "family": record["family"], "tokens": record["tokens"],
+                    "labels": record["labels"], "predicted": predicted}
+            f.write(json.dumps(line, ensure_ascii=False) + "\n")
     print(f"Saved {path}")

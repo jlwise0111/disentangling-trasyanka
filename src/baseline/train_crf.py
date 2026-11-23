@@ -22,7 +22,7 @@ sys.path.append(str(PROJECT_ROOT))
 from src.utils.conllu_parser import load_both_vocabs
 from src.baseline.crf_features import sent_to_features
 from src.baseline.splits import (training_sentences, evaluation_sets, evaluate_on_sets,
-                                 print_macro_f1_table, save_results,
+                                 print_macro_f1_table, save_results, save_predictions,
                                  TRAINING_SETTINGS, LEARNING_CURVE_FRACTIONS)
 
 CRF_PARAMS = {
@@ -106,6 +106,7 @@ def main():
         print_macro_f1_table(name, results)
         print(results["trasyanka_test"]["report"])
         save_results(name, results)
+        save_predictions(name, sets, results)
 
 
 if __name__ == "__main__":

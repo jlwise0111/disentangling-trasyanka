@@ -13,3 +13,6 @@ data/old_processed/
 
 # Raw corpora (download separately, see README)
 data/raw/
+
+# Word-level predictions, about 2.5 MB per run (rerun the training scripts to rebuild)
+results/predictions/
