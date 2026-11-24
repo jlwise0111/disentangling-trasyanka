@@ -16,6 +16,23 @@
       "hybrid_f1": 0.0
     }
   },
+  "crf_tuned": {
+    "all": {
+      "words": 56475,
+      "macro_f1": 0.4488,
+      "hybrid_f1": 0.0
+    },
+    "in_vocab": {
+      "words": 33725,
+      "macro_f1": 0.476,
+      "hybrid_f1": 0.0
+    },
+    "out_of_vocab": {
+      "words": 22750,
+      "macro_f1": 0.199,
+      "hybrid_f1": 0.0
+    }
+  },
   "bilstm": {
     "all": {
       "words": 56475,
@@ -48,6 +65,23 @@
       "words": 8048,
       "macro_f1": 0.5619,
       "hybrid_f1": 0.3906
+    }
+  },
+  "crf_tuned_in_domain": {
+    "all": {
+      "words": 56475,
+      "macro_f1": 0.8692,
+      "hybrid_f1": 0.75
+    },
+    "in_vocab": {
+      "words": 48427,
+      "macro_f1": 0.9409,
+      "hybrid_f1": 0.8987
+    },
+    "out_of_vocab": {
+      "words": 8048,
+      "macro_f1": 0.5585,
+      "hybrid_f1": 0.3756
     }
   },
   "bilstm_in_domain": {
@@ -84,6 +118,23 @@
       "hybrid_f1": 0.363
     }
   },
+  "crf_tuned_mixed": {
+    "all": {
+      "words": 56475,
+      "macro_f1": 0.8323,
+      "hybrid_f1": 0.7324
+    },
+    "in_vocab": {
+      "words": 49384,
+      "macro_f1": 0.9,
+      "hybrid_f1": 0.8802
+    },
+    "out_of_vocab": {
+      "words": 7091,
+      "macro_f1": 0.5069,
+      "hybrid_f1": 0.3619
+    }
+  },
   "bilstm_mixed": {
     "all": {
       "words": 56475,
@@ -116,6 +167,23 @@
       "words": 13655,
       "macro_f1": 0.4325,
       "hybrid_f1": 0.2483
+    }
+  },
+  "crf_tuned_mixed_10": {
+    "all": {
+      "words": 56475,
+      "macro_f1": 0.6701,
+      "hybrid_f1": 0.5324
+    },
+    "in_vocab": {
+      "words": 42820,
+      "macro_f1": 0.7909,
+      "hybrid_f1": 0.8348
+    },
+    "out_of_vocab": {
+      "words": 13655,
+      "macro_f1": 0.4226,
+      "hybrid_f1": 0.252
     }
   },
   "bilstm_mixed_10": {
@@ -152,6 +220,23 @@
       "hybrid_f1": 0.3013
     }
   },
+  "crf_tuned_mixed_30": {
+    "all": {
+      "words": 56475,
+      "macro_f1": 0.754,
+      "hybrid_f1": 0.6379
+    },
+    "in_vocab": {
+      "words": 46313,
+      "macro_f1": 0.8486,
+      "hybrid_f1": 0.8547
+    },
+    "out_of_vocab": {
+      "words": 10162,
+      "macro_f1": 0.4535,
+      "hybrid_f1": 0.2718
+    }
+  },
   "bilstm_mixed_30": {
     "all": {
       "words": 56475,
@@ -184,6 +269,23 @@
       "words": 7825,
       "macro_f1": 0.5075,
       "hybrid_f1": 0.3554
+    }
+  },
+  "crf_tuned_mixed_70": {
+    "all": {
+      "words": 56475,
+      "macro_f1": 0.8118,
+      "hybrid_f1": 0.7118
+    },
+    "in_vocab": {
+      "words": 48650,
+      "macro_f1": 0.885,
+      "hybrid_f1": 0.8736
+    },
+    "out_of_vocab": {
+      "words": 7825,
+      "macro_f1": 0.4969,
+      "hybrid_f1": 0.3505
     }
   },
   "bilstm_mixed_70": {

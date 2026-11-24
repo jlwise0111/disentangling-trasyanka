@@ -1,0 +1,112 @@
+{
+  "trasyanka_test": {
+    "macro_f1": 0.8118,
+    "weighted_f1": 0.8506,
+    "labels": [
+      "BE",
+      "RU",
+      "SHARED",
+      "HYBRID"
+    ],
+    "confusion_matrix": [
+      [
+        8422,
+        444,
+        1420,
+        103
+      ],
+      [
+        215,
+        14362,
+        2100,
+        52
+      ],
+      [
+        1356,
+        2264,
+        24513,
+        19
+      ],
+      [
+        190,
+        182,
+        71,
+        762
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          BE     0.8271    0.8107    0.8188     10389\n          RU     0.8325    0.8585    0.8453     16729\n      SHARED     0.8722    0.8707    0.8715     28152\n      HYBRID     0.8141    0.6324    0.7118      1205\n\n    accuracy                         0.8510     56475\n   macro avg     0.8365    0.7931    0.8118     56475\nweighted avg     0.8509    0.8510    0.8506     56475\n"
+  },
+  "russian_test": {
+    "macro_f1": 0.9813,
+    "weighted_f1": 0.9837,
+    "labels": [
+      "RU",
+      "SHARED"
+    ],
+    "confusion_matrix": [
+      [
+        85304,
+        1419
+      ],
+      [
+        482,
+        38302
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          RU     0.9944    0.9810    0.9876     86956\n      SHARED     0.9643    0.9858    0.9749     38854\n\n   micro avg     0.9849    0.9825    0.9837    125810\n   macro avg     0.9793    0.9834    0.9813    125810\nweighted avg     0.9851    0.9825    0.9837    125810\n"
+  },
+  "belarusian_official_test": {
+    "macro_f1": 0.6011,
+    "weighted_f1": 0.8914,
+    "labels": [
+      "BE",
+      "RU",
+      "SHARED"
+    ],
+    "confusion_matrix": [
+      [
+        5710,
+        1018,
+        396
+      ],
+      [
+        0,
+        2,
+        1
+      ],
+      [
+        36,
+        4,
+        2373
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          BE     0.9937    0.7955    0.8836      7178\n          RU     0.0020    0.6667    0.0039         3\n      SHARED     0.8567    0.9834    0.9157      2413\n\n   micro avg     0.8475    0.8427    0.8451      9594\n   macro avg     0.6175    0.8152    0.6011      9594\nweighted avg     0.9590    0.8427    0.8914      9594\n"
+  },
+  "taraskievica": {
+    "macro_f1": 0.5873,
+    "weighted_f1": 0.8797,
+    "labels": [
+      "BE",
+      "RU",
+      "SHARED"
+    ],
+    "confusion_matrix": [
+      [
+        60557,
+        8168,
+        5792
+      ],
+      [
+        7,
+        44,
+        19
+      ],
+      [
+        1309,
+        127,
+        23505
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          BE     0.9787    0.8076    0.8850     74986\n          RU     0.0053    0.6286    0.0105        70\n      SHARED     0.8018    0.9424    0.8664     24941\n\n   micro avg     0.8450    0.8411    0.8431     99997\n   macro avg     0.5953    0.7929    0.5873     99997\nweighted avg     0.9339    0.8411    0.8797     99997\n"
+  }
+}
