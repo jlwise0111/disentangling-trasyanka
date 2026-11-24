@@ -26,14 +26,13 @@ sys.path.append(str(PROJECT_ROOT))
 from src.utils.conllu_parser import load_both_vocabs
 from src.utils.metrics import evaluate_predictions
 from src.baseline.crf_features import sent_to_features
-from src.baseline.splits import training_sentences, trasyanka_split, TRAINING_SETTINGS, RESULTS_DIR
-from src.baseline.train_crf import CRF_PARAMS
+from src.baseline.splits import training_sentences, trasyanka_split, TRAINING_SETTINGS
+from src.baseline.train_crf import CRF_PARAMS, TUNING_PATH
 
 # Ten times apart, so the grid spans weak to strong regularization; 0.1 / 0.1 is the current default
 C1_VALUES = (0.01, 0.1, 1.0)
 C2_VALUES = (0.01, 0.1, 1.0)
 GRID = list(product(C1_VALUES, C2_VALUES))      # 9 (c1, c2) pairs
-TUNING_PATH = RESULTS_DIR / "crf_tuning.json"
 
 
 def features(records, ru_vocab, be_vocab):

@@ -22,7 +22,7 @@ sys.path.append(str(PROJECT_ROOT))
 from src.utils.metrics import LABELS
 from src.baseline.splits import training_sentences, RESULTS_DIR, PREDICTIONS_DIR, LEARNING_CURVE_FRACTIONS
 
-MODELS = ["crf", "bilstm"]
+MODELS = ["crf", "crf_tuned", "bilstm"]
 RUNS = ([("zero_shot", 1.0), ("in_domain", 1.0), ("mixed", 1.0)]
         + [("mixed", fraction) for fraction in LEARNING_CURVE_FRACTIONS])
 COMPARISON_PATH = RESULTS_DIR / "comparison.json"
@@ -105,11 +105,11 @@ def main():
         vocabulary = training_vocabulary(setting, fraction)
         label = setting if fraction == 1.0 else f"{setting} {round(fraction * 100)}%"
         print(f"\n{label}  ({len(vocabulary):,} training word forms)")
-        print(f"  {'model':<8}{'words':>8}{'all F1':>9}{'IV F1':>9}{'OOV F1':>9}{'OOV share':>11}"
+        print(f"  {'model':<11}{'words':>8}{'all F1':>9}{'IV F1':>9}{'OOV F1':>9}{'OOV share':>11}"
               f"{'HYB IV':>9}{'HYB OOV':>9}")
         for model, records in runs.items():
             if records is None:
-                print(f"  {model:<8}  (no predictions yet)")
+                print(f"  {model:<11}  (no predictions yet)")
                 continue
             in_vocab, out_of_vocab = split_by_vocabulary(records, vocabulary)
             everything = {"gold": in_vocab["gold"] + out_of_vocab["gold"],
@@ -117,7 +117,7 @@ def main():
             row = {"all": score(everything), "in_vocab": score(in_vocab), "out_of_vocab": score(out_of_vocab)}
             comparison[run_name(model, setting, fraction)] = row
             oov_share = row["out_of_vocab"]["words"] / row["all"]["words"]
-            print(f"  {model:<8}{row['all']['words']:>8,}{fmt(row['all']['macro_f1']):>9}"
+            print(f"  {model:<11}{row['all']['words']:>8,}{fmt(row['all']['macro_f1']):>9}"
                   f"{fmt(row['in_vocab']['macro_f1']):>9}{fmt(row['out_of_vocab']['macro_f1']):>9}"
                   f"{oov_share:>10.1%} {fmt(row['in_vocab']['hybrid_f1']):>9}{fmt(row['out_of_vocab']['hybrid_f1']):>9}")
 
