@@ -1,6 +1,6 @@
 """
 Feature extraction for the CRF baseline: spelling cues, prefixes and suffixes,
-vocabulary membership, and the same kinds of clues for the neighbouring words.
+vocabulary membership, and the same kinds of clues for the neighboring words.
 """
 import sys
 from pathlib import Path
@@ -17,7 +17,7 @@ SUFFIX_LENGTHS = (1, 2, 3, 4)
 def token_to_features(sent_tokens, i, ru_vocab=None, be_vocab=None):
     """
     Feature dict for the word at position i: the word, its cues, endings, vocab
-    membership, prefixes and suffixes, plus a few clues from each neighbour
+    membership, prefixes and suffixes, plus a few clues from each neighbor
     (or BOS / EOS at the sentence edges).
     """
     word = sent_tokens[i]
