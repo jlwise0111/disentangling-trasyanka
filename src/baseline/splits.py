@@ -139,9 +139,10 @@ def evaluation_sets():
             "taraskievica": tarask}
 
 
-def evaluate_on_sets(predict_sentences, sets):
+def evaluate_on_sets(predict_sentences, sets, field="tokens"):
     """
-    Scores one model on every set. predict_sentences maps token lists to label lists.
+    Scores one model on every set. predict_sentences maps word lists to label lists;
+    the words come from each record's `field`: "tokens" (Latin, the default) or "cyrillic".
     Macro-F1 averages only over the labels present in that set's gold data.
     Returns {name: metrics dict from metrics.py}; each metrics dict also keeps the
     predicted label lists under "predictions" (for save_predictions; save_results skips them).
@@ -149,7 +150,7 @@ def evaluate_on_sets(predict_sentences, sets):
     results = {}
     for name, records in sets.items():
         gold = [record["labels"] for record in records]
-        pred = predict_sentences([record["tokens"] for record in records])
+        pred = predict_sentences([record[field] for record in records])
         # A label with no gold examples (e.g. HYBRID outside Trasyanka) would score 0 and drag the average
         labels = [label for label in LABELS if any(label in sentence_labels for sentence_labels in gold)]
         results[name] = evaluate_predictions(gold, pred, labels=labels)
