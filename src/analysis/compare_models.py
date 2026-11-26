@@ -22,7 +22,7 @@ sys.path.append(str(PROJECT_ROOT))
 from src.utils.metrics import LABELS
 from src.baseline.splits import training_sentences, RESULTS_DIR, PREDICTIONS_DIR, LEARNING_CURVE_FRACTIONS
 
-MODELS = ["crf", "crf_tuned", "bilstm"]
+MODELS = ["crf", "crf_tuned", "bilstm", "xlmr", "slavicbert"]
 RUNS = ([("zero_shot", 1.0), ("in_domain", 1.0), ("mixed", 1.0)]
         + [("mixed", fraction) for fraction in LEARNING_CURVE_FRACTIONS])
 COMPARISON_PATH = RESULTS_DIR / "comparison.json"
@@ -50,7 +50,9 @@ def load_predictions(name):
 def training_vocabulary(setting, fraction):
     """
     The set of word forms (the Latin "tokens") in the training data of this setting.
-    Both models in a setting train on exactly the same sentences, so they share it.
+    All models in a setting train on exactly the same sentences, so they share it. The transformers
+    read Cyrillic, but each Cyrillic word comes from one Latin token, so the Latin forms still decide
+    whether a word was seen in training.
     """
     records = training_sentences(setting, fraction)
     # A set, not a list: duplicates collapse and "token in vocabulary" is a fast lookup

@@ -1,0 +1,149 @@
+{
+  "trasyanka": {
+    "macro_f1": 0.3284,
+    "weighted_f1": 0.4836,
+    "labels": [
+      "BE",
+      "RU",
+      "SHARED",
+      "HYBRID"
+    ],
+    "confusion_matrix": [
+      [
+        26562,
+        867,
+        9606,
+        0
+      ],
+      [
+        34988,
+        9036,
+        14515,
+        0
+      ],
+      [
+        33478,
+        3941,
+        63619,
+        0
+      ],
+      [
+        3706,
+        180,
+        259,
+        0
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          BE     0.2690    0.7172    0.3913     37035\n          RU     0.6443    0.1544    0.2491     58539\n      SHARED     0.7230    0.6297    0.6731    101038\n      HYBRID     0.0000    0.0000    0.0000      4145\n\n    accuracy                         0.4942    200757\n   macro avg     0.4091    0.3753    0.3284    200757\nweighted avg     0.6014    0.4942    0.4836    200757\n"
+  },
+  "trasyanka_test": {
+    "macro_f1": 0.3315,
+    "weighted_f1": 0.4839,
+    "labels": [
+      "BE",
+      "RU",
+      "SHARED",
+      "HYBRID"
+    ],
+    "confusion_matrix": [
+      [
+        7630,
+        214,
+        2545,
+        0
+      ],
+      [
+        10078,
+        2735,
+        3916,
+        0
+      ],
+      [
+        9428,
+        1245,
+        17479,
+        0
+      ],
+      [
+        1044,
+        67,
+        94,
+        0
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          BE     0.2708    0.7344    0.3957     10389\n          RU     0.6419    0.1635    0.2606     16729\n      SHARED     0.7273    0.6209    0.6699     28152\n      HYBRID     0.0000    0.0000    0.0000      1205\n\n    accuracy                         0.4930     56475\n   macro avg     0.4100    0.3797    0.3315     56475\nweighted avg     0.6025    0.4930    0.4839     56475\n"
+  },
+  "russian_test": {
+    "macro_f1": 0.9863,
+    "weighted_f1": 0.9883,
+    "labels": [
+      "RU",
+      "SHARED"
+    ],
+    "confusion_matrix": [
+      [
+        86692,
+        241
+      ],
+      [
+        1208,
+        37645
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          RU     0.9863    0.9970    0.9916     86956\n      SHARED     0.9936    0.9689    0.9811     38854\n\n   micro avg     0.9885    0.9883    0.9884    125810\n   macro avg     0.9899    0.9829    0.9863    125810\nweighted avg     0.9885    0.9883    0.9883    125810\n"
+  },
+  "belarusian_official_test": {
+    "macro_f1": 0.7278,
+    "weighted_f1": 0.9797,
+    "labels": [
+      "BE",
+      "RU",
+      "SHARED"
+    ],
+    "confusion_matrix": [
+      [
+        7010,
+        11,
+        157
+      ],
+      [
+        1,
+        2,
+        0
+      ],
+      [
+        30,
+        1,
+        2382
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          BE     0.9956    0.9766    0.9860      7178\n          RU     0.1429    0.6667    0.2353         3\n      SHARED     0.9382    0.9872    0.9620      2413\n\n    accuracy                         0.9792      9594\n   macro avg     0.6922    0.8768    0.7278      9594\nweighted avg     0.9809    0.9792    0.9797      9594\n"
+  },
+  "taraskievica": {
+    "macro_f1": 0.7216,
+    "weighted_f1": 0.9823,
+    "labels": [
+      "BE",
+      "RU",
+      "SHARED"
+    ],
+    "confusion_matrix": [
+      [
+        73768,
+        89,
+        1129
+      ],
+      [
+        18,
+        21,
+        31
+      ],
+      [
+        510,
+        20,
+        24411
+      ]
+    ],
+    "report": "              precision    recall  f1-score   support\n\n          BE     0.9929    0.9838    0.9883     74986\n          RU     0.1615    0.3000    0.2100        70\n      SHARED     0.9546    0.9787    0.9665     24941\n\n    accuracy                         0.9820     99997\n   macro avg     0.7030    0.7542    0.7216     99997\nweighted avg     0.9828    0.9820    0.9823     99997\n"
+  }
+}
