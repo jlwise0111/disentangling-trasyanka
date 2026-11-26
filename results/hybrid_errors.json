@@ -1,0 +1,175 @@
+{
+  "runs": {
+    "crf": "crf_tuned_mixed",
+    "bilstm": "bilstm_mixed",
+    "xlmr": "xlmr_mixed",
+    "slavicbert": "slavicbert_mixed"
+  },
+  "confusion": {
+    "crf": {
+      "gold_hybrid": 1205,
+      "correct": 795,
+      "missed_as": {
+        "RU": 171,
+        "BE": 159,
+        "SHARED": 80
+      },
+      "false_hybrid": {
+        "RU": 55,
+        "BE": 96,
+        "SHARED": 20
+      }
+    },
+    "bilstm": {
+      "gold_hybrid": 1205,
+      "correct": 779,
+      "missed_as": {
+        "RU": 201,
+        "BE": 170,
+        "SHARED": 55
+      },
+      "false_hybrid": {
+        "RU": 59,
+        "BE": 66,
+        "SHARED": 20
+      }
+    },
+    "xlmr": {
+      "gold_hybrid": 1205,
+      "correct": 864,
+      "missed_as": {
+        "SHARED": 48,
+        "BE": 125,
+        "RU": 168
+      },
+      "false_hybrid": {
+        "RU": 106,
+        "BE": 63,
+        "SHARED": 15
+      }
+    },
+    "slavicbert": {
+      "gold_hybrid": 1205,
+      "correct": 869,
+      "missed_as": {
+        "SHARED": 50,
+        "RU": 159,
+        "BE": 127
+      },
+      "false_hybrid": {
+        "RU": 122,
+        "SHARED": 35,
+        "BE": 119
+      }
+    }
+  },
+  "missed_by_count": {
+    "0": 612,
+    "1": 168,
+    "2": 130,
+    "3": 95,
+    "4": 200
+  },
+  "top_forms": [
+    {
+      "token": "havaryc´",
+      "occurrences": 21,
+      "missed_by_all": 18
+    },
+    {
+      "token": "s",
+      "occurrences": 27,
+      "missed_by_all": 7
+    },
+    {
+      "token": "sabralas´",
+      "occurrences": 5,
+      "missed_by_all": 4
+    },
+    {
+      "token": "ihrajuc´",
+      "occurrences": 3,
+      "missed_by_all": 3
+    },
+    {
+      "token": "maloj",
+      "occurrences": 3,
+      "missed_by_all": 3
+    },
+    {
+      "token": "paluč´ac´",
+      "occurrences": 3,
+      "missed_by_all": 3
+    },
+    {
+      "token": "plaxi",
+      "occurrences": 3,
+      "missed_by_all": 3
+    },
+    {
+      "token": "zdzelaje",
+      "occurrences": 4,
+      "missed_by_all": 2
+    },
+    {
+      "token": "atvič´aje",
+      "occurrences": 2,
+      "missed_by_all": 2
+    },
+    {
+      "token": "bal´šénnyje",
+      "occurrences": 2,
+      "missed_by_all": 2
+    },
+    {
+      "token": "davec´",
+      "occurrences": 2,
+      "missed_by_all": 2
+    },
+    {
+      "token": "najšla",
+      "occurrences": 2,
+      "missed_by_all": 2
+    },
+    {
+      "token": "pryhatove",
+      "occurrences": 2,
+      "missed_by_all": 2
+    },
+    {
+      "token": "sjam´´je",
+      "occurrences": 2,
+      "missed_by_all": 2
+    },
+    {
+      "token": "vučyles´",
+      "occurrences": 2,
+      "missed_by_all": 2
+    },
+    {
+      "token": "zastaúljaje",
+      "occurrences": 2,
+      "missed_by_all": 2
+    },
+    {
+      "token": "étum",
+      "occurrences": 2,
+      "missed_by_all": 2
+    },
+    {
+      "token": "čevo-ta",
+      "occurrences": 2,
+      "missed_by_all": 2
+    },
+    {
+      "token": "čévo",
+      "occurrences": 2,
+      "missed_by_all": 2
+    },
+    {
+      "token": "nečyha",
+      "occurrences": 4,
+      "missed_by_all": 1
+    }
+  ]
+}
