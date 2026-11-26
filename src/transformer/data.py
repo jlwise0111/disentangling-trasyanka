@@ -12,6 +12,15 @@ from its first piece, so every word gets exactly one label, as for the CRF and B
 
 Words are lowercased: the Trasyanka transcripts have no capitals and the treebanks do,
 so case would be a cue that exists in training but not on the test families.
+
+Two spellings (SPELLINGS):
+    original  the "cyrillic" column: treebank words in their own spelling (Russian они, Belarusian
+              яны), Trasyanka converted from the Latin transcripts with Belarusian letters for every
+              word (ani -> ані), since the language of a word can't be used to choose its letters.
+    shared    every source converted from its Latin "tokens" column the same way, so a Russian
+              treebank word looks like the same word in the transcripts (они -> ani -> ані).
+              Removes the treebank-only letter cues (и щ ъ = RU, і ў = BE) that point the wrong
+              way on Trasyanka. For Trasyanka records it gives exactly the "cyrillic" column.
 """
 import sys
 from pathlib import Path
@@ -24,18 +33,38 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(PROJECT_ROOT))
 
 from src.model.data import LABEL_TO_ID, ID_TO_LABEL, PAD_LABEL
+from src.utils.translit import latin_to_cyrillic
 
 MODEL_NAMES = {
     "xlmr": "FacebookAI/xlm-roberta-base",                    # 100 languages, Belarusian included
     "slavicbert": "DeepPavlov/bert-base-bg-cs-pl-ru-cased",   # Bulgarian, Czech, Polish, Russian; no Belarusian
 }
-FIELD = "cyrillic"      # the record field the transformers read
+SPELLINGS = ("original", "shared")
+SOURCE_FIELD = {"original": "cyrillic", "shared": "tokens"}   # the record field each spelling starts from
 MAX_PIECES = 512        # the models' limit; the longest sentence in any set is 351 pieces, so nothing is cut
 
 
 def load_tokenizer(model_key):
     """The fast tokenizer of MODEL_NAMES[model_key] (downloaded once, then cached)."""
     return AutoTokenizer.from_pretrained(MODEL_NAMES[model_key])
+
+
+def input_words(record, spelling="original"):
+    """
+    The Cyrillic words a transformer reads for one record (a new list; the record is not changed).
+        original  record["cyrillic"] as it is
+        shared    latin_to_cyrillic of every word in record["tokens"] (the Latin column)
+        input_words({"tokens": ["ani", "hovorit"], "cyrillic": ["они", "говорит"], ...}, "shared")
+        -> ["ані", "говоріт"]
+    Reads only the field the spelling needs: predict_words builds records with just that one field.
+    Raises ValueError for any other spelling.
+    """
+    if spelling == "original":
+        return list(record["cyrillic"])         # a copy, so changing the result never changes the record
+    elif spelling == "shared":                  # the Latin tokens are already lowercase
+        return [latin_to_cyrillic(token) for token in record["tokens"]]
+    else:
+        raise ValueError(f"Unknown spelling: {spelling}")
 
 
 def align_labels(word_ids, labels):
@@ -71,8 +100,9 @@ def encode_sentence(words, labels, tokenizer):
 class SentenceDataset(Dataset):
     """Records -> encoded sentences, tokenized once up front (fast: the tokenizer is written in Rust)."""
 
-    def __init__(self, records, tokenizer, field=FIELD):
-        self.items = [encode_sentence(record[field], record["labels"], tokenizer) for record in records]
+    def __init__(self, records, tokenizer, spelling="original"):
+        self.items = [encode_sentence(input_words(record, spelling), record["labels"], tokenizer)
+                      for record in records]
 
     def __len__(self):
         return len(self.items)
@@ -122,8 +152,8 @@ def word_predictions(piece_label_ids, word_ids):
     return word_labels
 
 
-def make_loader(records, tokenizer, batch_size, shuffle=False, field=FIELD):
+def make_loader(records, tokenizer, batch_size, shuffle=False, spelling="original"):
     """DataLoader of padded batches. Keep shuffle=False for prediction, so the output order matches records."""
-    dataset = SentenceDataset(records, tokenizer, field)
+    dataset = SentenceDataset(records, tokenizer, spelling)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
                       collate_fn=lambda items: collate_batch(items, tokenizer.pad_token_id))

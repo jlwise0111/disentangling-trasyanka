@@ -1,7 +1,8 @@
 """
 Fine-tunes a pretrained transformer (XLM-R or SlavicBERT) for word-level language ID in
 one of the training settings from splits.py, and evaluates it on every evaluation set,
-like train_crf.py and train_bilstm.py. The models read the lowercased Cyrillic column.
+like train_crf.py and train_bilstm.py. The models read lowercased Cyrillic words, in the original
+or the shared spelling (see data.py; --spelling shared adds _shared to the run name).
 
 Early stopping: after every epoch the model labels the development family (fam_sh);
 the weights of the best epoch are kept, and training stops after PATIENCE epochs
@@ -14,6 +15,7 @@ Run from the project root:
     python src/transformer/train_transformer.py --model xlmr                         # zero-shot, results/xlmr.json
     python src/transformer/train_transformer.py --model xlmr --setting in_domain     # results/xlmr_in_domain.json
     python src/transformer/train_transformer.py --model slavicbert --all             # every run in ALL_RUNS
+    python src/transformer/train_transformer.py --model xlmr --spelling shared       # results/xlmr_shared.json
     python src/transformer/train_transformer.py --model xlmr --setting mixed --limit 200 --max-epochs 1
                                                      # quick test on 200 sentences per set; saves nothing
 """
@@ -34,7 +36,8 @@ from src.baseline.splits import (training_sentences, evaluation_sets, evaluate_o
                                  TRAINING_SETTINGS, LEARNING_CURVE_FRACTIONS, RANDOM_SEED)
 from src.model.data import LABEL_TO_ID, ID_TO_LABEL
 from src.model.train_bilstm import set_seed
-from src.transformer.data import MODEL_NAMES, FIELD, load_tokenizer, make_loader, word_predictions
+from src.transformer.data import (MODEL_NAMES, SPELLINGS, SOURCE_FIELD, load_tokenizer, make_loader,
+                                  word_predictions)
 
 BATCH_SIZE = 32
 EVAL_BATCH_SIZE = 64
@@ -53,13 +56,15 @@ def get_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def run_name(model_key, setting, fraction):
-    """xlmr, xlmr_in_domain, slavicbert_mixed_30 ... (same scheme as the CRF and BiLSTM)"""
-    if setting == "zero_shot":
-        return model_key
-    name = f"{model_key}_{setting}"
-    if fraction != 1.0:
-        name += f"_{round(fraction * 100)}"
+def run_name(model_key, setting, fraction, spelling="original"):
+    """xlmr, xlmr_in_domain, slavicbert_mixed_30, xlmr_shared ... (same scheme as the CRF and BiLSTM)"""
+    name = model_key
+    if setting != "zero_shot":
+        name += f"_{setting}"
+        if fraction != 1.0:
+            name += f"_{round(fraction * 100)}"
+    if spelling != "original":
+        name += f"_{spelling}"
     return name
 
 
@@ -118,13 +123,14 @@ def predict(model, loader, device):
     return predictions
 
 
-def predict_words(model, tokenizer, word_lists, device):
+def predict_words(model, tokenizer, word_lists, device, spelling="original"):
     """
-    Label lists for plain Cyrillic word lists, the interface evaluate_on_sets expects.
-    Every word gets a placeholder label, which the dataset needs and predict() never looks at.
+    Label lists for plain word lists, the interface evaluate_on_sets expects. The words come from
+    SOURCE_FIELD[spelling] (Cyrillic for "original", Latin for "shared"), so they are put back under
+    that field. Every word gets a placeholder label, which the dataset needs and predict() never looks at.
     """
-    records = [{FIELD: words, "labels": ["SHARED"] * len(words)} for words in word_lists]
-    return predict(model, make_loader(records, tokenizer, batch_size=EVAL_BATCH_SIZE), device)
+    records = [{SOURCE_FIELD[spelling]: words, "labels": ["SHARED"] * len(words)} for words in word_lists]
+    return predict(model, make_loader(records, tokenizer, batch_size=EVAL_BATCH_SIZE, spelling=spelling), device)
 
 
 def dev_macro_f1(model, dev_loader, dev_records, device):
@@ -133,7 +139,8 @@ def dev_macro_f1(model, dev_loader, dev_records, device):
     return evaluate_predictions([record["labels"] for record in dev_records], predictions)["macro_f1"]
 
 
-def train_and_evaluate(model_key, setting, fraction, sets, max_epochs=MAX_EPOCHS, patience=PATIENCE, limit=None):
+def train_and_evaluate(model_key, setting, fraction, sets, max_epochs=MAX_EPOCHS, patience=PATIENCE, limit=None,
+                       spelling="original"):
     """
     Fine-tunes one model with early stopping on fam_sh and scores the best epoch's weights on `sets`.
     Returns (results, history). limit (for quick tests) keeps only the first `limit` sentences
@@ -151,8 +158,8 @@ def train_and_evaluate(model_key, setting, fraction, sets, max_epochs=MAX_EPOCHS
     if setting != "zero_shot":
         sets = {name: records for name, records in sets.items() if name != "trasyanka"}
 
-    train_loader = make_loader(train, tokenizer, batch_size=BATCH_SIZE, shuffle=True)
-    dev_loader = make_loader(dev, tokenizer, batch_size=EVAL_BATCH_SIZE)
+    train_loader = make_loader(train, tokenizer, batch_size=BATCH_SIZE, shuffle=True, spelling=spelling)
+    dev_loader = make_loader(dev, tokenizer, batch_size=EVAL_BATCH_SIZE, spelling=spelling)
 
     model = load_model(model_key, device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
@@ -160,7 +167,7 @@ def train_and_evaluate(model_key, setting, fraction, sets, max_epochs=MAX_EPOCHS
     scheduler = get_linear_schedule_with_warmup(optimizer, int(WARMUP_SHARE * total_steps), total_steps)
     scaler = torch.amp.GradScaler(device.type, enabled=device.type == "cuda")
     print(f"{len(train):,} training sentences, {sum(p.numel() for p in model.parameters()):,} parameters, "
-          f"device {device}, mixed precision {scaler.is_enabled()}")
+          f"device {device}, mixed precision {scaler.is_enabled()}, {spelling} spelling")
 
     history, best_f1, best_state, epochs_without_improvement = [], -1, None, 0
     for epoch in range(1, max_epochs + 1):
@@ -183,8 +190,8 @@ def train_and_evaluate(model_key, setting, fraction, sets, max_epochs=MAX_EPOCHS
             break
 
     model.load_state_dict(best_state)
-    results = evaluate_on_sets(lambda word_lists: predict_words(model, tokenizer, word_lists, device), sets,
-                               field=FIELD)
+    results = evaluate_on_sets(lambda word_lists: predict_words(model, tokenizer, word_lists, device, spelling),
+                               sets, field=SOURCE_FIELD[spelling])
     return results, history
 
 
@@ -196,6 +203,8 @@ def main():
     parser.add_argument("--fraction", type=float, default=1.0,
                         help="share of the Trasyanka training transcripts (in_domain / mixed only)")
     parser.add_argument("--all", action="store_true", help="run every (setting, fraction) in ALL_RUNS")
+    parser.add_argument("--spelling", choices=SPELLINGS, default="original",
+                        help="shared: every source converted from its Latin tokens the same way (see data.py)")
     parser.add_argument("--max-epochs", type=int, default=MAX_EPOCHS)
     parser.add_argument("--limit", type=int, help="quick test: only this many sentences per set; saves nothing")
     args = parser.parse_args()
@@ -204,11 +213,11 @@ def main():
     sets = evaluation_sets()
 
     for setting, fraction in runs:
-        name = run_name(args.model, setting, fraction)
-        print(f"\n=== {name}: setting={setting}, fraction={fraction} ===")
+        name = run_name(args.model, setting, fraction, args.spelling)
+        print(f"\n=== {name}: setting={setting}, fraction={fraction}, spelling={args.spelling} ===")
         start = time.time()
-        results, history = train_and_evaluate(args.model, setting, fraction, sets,
-                                              max_epochs=args.max_epochs, limit=args.limit)
+        results, history = train_and_evaluate(args.model, setting, fraction, sets, max_epochs=args.max_epochs,
+                                              limit=args.limit, spelling=args.spelling)
         best_epoch = history.index(max(history)) + 1
         print(f"Best epoch {best_epoch} of {len(history)} (dev Macro-F1 {max(history):.4f}), "
               f"{(time.time() - start) / 60:.1f} min")
