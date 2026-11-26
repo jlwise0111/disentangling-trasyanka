@@ -1,12 +1,13 @@
 """
-Checkpoint 2: the CRF and the BiLSTM on the Trasyanka test families, split into
-in-vocabulary words (the word form occurs in that run's training data) and
-out-of-vocabulary words (it does not). Character modelling should matter most on
-out-of-vocabulary words, e.g. spoken Russian written as pronounced (nada, tožy).
+Every model (CRF, tuned CRF, BiLSTM, XLM-R, SlavicBERT) on the Trasyanka test families, split
+into in-vocabulary words (the word form occurs in that run's training data) and
+out-of-vocabulary words (it does not). Character modelling and pretraining should matter most
+on out-of-vocabulary words, e.g. spoken Russian written as pronounced (nada, tožy).
 
-Reads results/predictions/<run>.jsonl (written by train_crf.py and train_bilstm.py),
-prints one table per setting and writes results/comparison.json.
-Runs without a prediction file yet are skipped.
+Reads results/predictions/<run>.jsonl (written by the training scripts), prints one table per
+setting and writes results/comparison.json. The shared-spelling transformer runs (<run>_shared)
+are an ablation made only for some settings: they are listed where they exist.
+Main runs without a prediction file yet are shown as missing.
 
 Run from the project root:   python src/analysis/compare_models.py
 """
@@ -23,19 +24,21 @@ from src.utils.metrics import LABELS
 from src.baseline.splits import training_sentences, RESULTS_DIR, PREDICTIONS_DIR, LEARNING_CURVE_FRACTIONS
 
 MODELS = ["crf", "crf_tuned", "bilstm", "xlmr", "slavicbert"]
+SHARED_SPELLING_MODELS = ["xlmr", "slavicbert"]     # ablation: listed only where a _shared run exists
 RUNS = ([("zero_shot", 1.0), ("in_domain", 1.0), ("mixed", 1.0)]
         + [("mixed", fraction) for fraction in LEARNING_CURVE_FRACTIONS])
 COMPARISON_PATH = RESULTS_DIR / "comparison.json"
+NAME_WIDTH = 19
 
 
-def run_name(model, setting, fraction):
-    """crf, crf_in_domain, bilstm_mixed_30 ... (the names the training scripts use)"""
-    if setting == "zero_shot":
-        return model
-    name = f"{model}_{setting}"
-    if fraction != 1.0:
-        name += f"_{round(fraction * 100)}"
-    return name
+def run_name(model, setting, fraction, suffix=""):
+    """crf, crf_in_domain, bilstm_mixed_30, xlmr_mixed_shared ... (the names the training scripts use)"""
+    name = model
+    if setting != "zero_shot":
+        name += f"_{setting}"
+        if fraction != 1.0:
+            name += f"_{round(fraction * 100)}"
+    return name + suffix
 
 
 def load_predictions(name):
@@ -101,25 +104,32 @@ def main():
     """Scores every available run on all / in-vocabulary / out-of-vocabulary words and saves the table."""
     comparison = {}
     for setting, fraction in RUNS:
-        runs = {model: load_predictions(run_name(model, setting, fraction)) for model in MODELS}
-        if all(records is None for records in runs.values()):
+        # {name shown in the table: (run name, prediction records or None)}
+        runs = {model: (run_name(model, setting, fraction), load_predictions(run_name(model, setting, fraction)))
+                for model in MODELS}
+        for model in SHARED_SPELLING_MODELS:
+            name = run_name(model, setting, fraction, suffix="_shared")
+            records = load_predictions(name)
+            if records is not None:
+                runs[f"{model} shared"] = (name, records)
+        if all(records is None for _, records in runs.values()):
             continue
         vocabulary = training_vocabulary(setting, fraction)
         label = setting if fraction == 1.0 else f"{setting} {round(fraction * 100)}%"
         print(f"\n{label}  ({len(vocabulary):,} training word forms)")
-        print(f"  {'model':<11}{'words':>8}{'all F1':>9}{'IV F1':>9}{'OOV F1':>9}{'OOV share':>11}"
+        print(f"  {'model':<{NAME_WIDTH}}{'words':>8}{'all F1':>9}{'IV F1':>9}{'OOV F1':>9}{'OOV share':>11}"
               f"{'HYB IV':>9}{'HYB OOV':>9}")
-        for model, records in runs.items():
+        for model, (name, records) in runs.items():
             if records is None:
-                print(f"  {model:<11}  (no predictions yet)")
+                print(f"  {model:<{NAME_WIDTH}}  (no predictions yet)")
                 continue
             in_vocab, out_of_vocab = split_by_vocabulary(records, vocabulary)
             everything = {"gold": in_vocab["gold"] + out_of_vocab["gold"],
                           "predicted": in_vocab["predicted"] + out_of_vocab["predicted"]}
             row = {"all": score(everything), "in_vocab": score(in_vocab), "out_of_vocab": score(out_of_vocab)}
-            comparison[run_name(model, setting, fraction)] = row
+            comparison[name] = row
             oov_share = row["out_of_vocab"]["words"] / row["all"]["words"]
-            print(f"  {model:<11}{row['all']['words']:>8,}{fmt(row['all']['macro_f1']):>9}"
+            print(f"  {model:<{NAME_WIDTH}}{row['all']['words']:>8,}{fmt(row['all']['macro_f1']):>9}"
                   f"{fmt(row['in_vocab']['macro_f1']):>9}{fmt(row['out_of_vocab']['macro_f1']):>9}"
                   f"{oov_share:>10.1%} {fmt(row['in_vocab']['hybrid_f1']):>9}{fmt(row['out_of_vocab']['hybrid_f1']):>9}")
 
