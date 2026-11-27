@@ -10,7 +10,10 @@ both standard languages) on the Trasyanka test families:
        hard cases rather than one model's weakness;
     3. the hybrid word forms missed most often, ranked, written to an audit sheet with their
        sentence, the %mor BE / RU lemmas, POS and features, how the form is labeled in the
-       training data, and empty columns for the native-speaker partner (AUDIT_COLUMNS).
+       training data, and empty columns for the native-speaker partner (AUDIT_COLUMNS);
+    4. for contrast, hybrid forms every model labels correctly, in the same format: the most
+       frequent ones (mostly memorised from training) and forms never seen in training, which
+       show what the models can recognise in a new word.
 
 Training status of a form, from the mixed training data the four models saw (TRAINING):
     unseen            the form never occurs in training
@@ -20,8 +23,9 @@ Training status of a form, from the mixed training data the four models saw (TRA
 
 No confidence scores yet: the ranking uses how many models miss a word and how often.
 
-Writes results/hybrid_errors.json (counts) and results/hybrid_audit.csv (the audit sheet,
-UTF-8 with BOM so Excel shows Cyrillic and diacritics correctly).
+Writes results/hybrid_errors.json (counts), results/hybrid_audit.csv (the audit sheet) and
+results/hybrid_correct.csv (the contrast sheet), both UTF-8 with BOM so Excel shows Cyrillic
+and diacritics correctly.
 
 Run from the project root:   python src/analysis/hybrid_errors.py
 """
@@ -43,6 +47,7 @@ AUDIT_RUNS = {"crf": "crf_tuned_mixed", "bilstm": "bilstm_mixed",
 TRAINING = ("mixed", 1.0)       # the (setting, fraction) the audited runs were trained on
 TRAIN_STATUSES = ("unseen", "always HYBRID", "sometimes HYBRID", "never HYBRID")
 TOP_N = 20
+CORRECT_PER_GROUP = 10          # contrast sheet: this many frequent and this many unseen forms
 # Filled in during the audit, one answer per row; fixed answers so they can be counted afterwards
 AUDIT_COLUMNS = {
     "is_hybrid": "yes / no / unsure: is this word HYBRID in this sentence?",
@@ -52,6 +57,7 @@ AUDIT_COLUMNS = {
 }
 SUMMARY_PATH = RESULTS_DIR / "hybrid_errors.json"
 AUDIT_PATH = RESULTS_DIR / "hybrid_audit.csv"
+CORRECT_PATH = RESULTS_DIR / "hybrid_correct.csv"
 
 
 def load_runs(test_records):
@@ -169,29 +175,56 @@ def rank_word_forms(errors, top_n=TOP_N):
     return ranked[:top_n]
 
 
+def rank_correct_forms(errors, label_counts, per_group=CORRECT_PER_GROUP):
+    """
+    Hybrid forms every model labels correctly at least once, for contrast with rank_word_forms:
+    up to per_group forms seen in training ("frequent") and up to per_group forms never seen
+    ("unseen"), in that order. Each is a dict like rank_word_forms' with found_by_all,
+    first_found_by_all and group; within a group, sorted by found_by_all, occurrences, token.
+    """
+    forms = {}
+    for error in errors:
+        token = error["token"]
+        if token not in forms:
+            forms[token] = {"token": token, "occurrences": 0, "found_by_all": 0, "first_found_by_all": None}
+        form = forms[token]
+        form["occurrences"] += 1
+        if not error["missed_by"]:                                      # every model got it right
+            form["found_by_all"] += 1
+            if form["first_found_by_all"] is None:
+                form["first_found_by_all"] = error
+    found = [form for form in forms.values() if form["found_by_all"] > 0]
+    found.sort(key=lambda form: (-form["found_by_all"], -form["occurrences"], form["token"]))
+    groups = {"frequent": [f for f in found if train_status(f["token"], label_counts) != "unseen"],
+              "unseen": [f for f in found if train_status(f["token"], label_counts) == "unseen"]}
+    return [{**form, "group": group} for group, members in groups.items() for form in members[:per_group]]
+
+
 def sentence_with_mark(words, j):
     """The sentence as one string with word j in brackets: 'ja [prykalvaju] vaabšče'."""
     return " ".join(f"[{word}]" if k == j else word for k, word in enumerate(words))
 
 
-def audit_rows(ranked, test_records, label_counts):
+def audit_rows(ranked, test_records, label_counts, count_key="missed_by_all"):
     """
     One row per ranked word form, with the context the audit needs and empty columns to fill in.
-    label_counts comes from training_label_counts().
+    label_counts comes from training_label_counts(). count_key is "missed_by_all" for the audit
+    sheet and "found_by_all" for the contrast sheet; the example is the form's first such word.
     """
     rows = []
     for rank, form in enumerate(ranked, start=1):
-        error = form["first_missed_by_all"]
+        error = form[f"first_{count_key}"]
         record = test_records[error["sentence"]]
         j = error["word"]
         token = form["token"]
         rows.append({
             "rank": rank,
+            **({"group": form["group"]} if "group" in form else {}),
             "token": token,
             "cyrillic": record["cyrillic"][j],
             "raw": record["raw"][j],                       # with the reduced-vowel marks
             "occurrences": form["occurrences"],
-            "missed_by_all": form["missed_by_all"],
+            count_key: form[count_key],
             "train_status": train_status(token, label_counts),
             "train_labels": format_counts(label_counts.get(token, Counter())),
             **{f"pred_{model}": label for model, label in error["predictions"].items()},
@@ -250,6 +283,13 @@ def main():
         print(f"  {form['token']:<18}{form['occurrences']:>12}{form['missed_by_all']:>15}   "
               f"{train_status(form['token'], label_counts):<18}{predictions}")
 
+    correct = rank_correct_forms(errors, label_counts)
+    print(f"\nFor contrast: hybrid forms every model labels correctly")
+    print(f"  {'group':<10}{'token':<20}{'occurrences':>12}{'found by all':>14}   training")
+    for form in correct:
+        print(f"  {form['group']:<10}{form['token']:<20}{form['occurrences']:>12}{form['found_by_all']:>14}   "
+              f"{train_status(form['token'], label_counts)}")
+
     summary = {
         "runs": AUDIT_RUNS,
         "training": {"setting": TRAINING[0], "fraction": TRAINING[1]},
@@ -261,11 +301,14 @@ def main():
         "top_forms": [{"token": form["token"], "occurrences": form["occurrences"],
                        "missed_by_all": form["missed_by_all"], "train_status": train_status(form["token"], label_counts)}
                       for form in ranked],
+        "correct_forms": [{"group": form["group"], "token": form["token"], "occurrences": form["occurrences"],
+                           "found_by_all": form["found_by_all"]} for form in correct],
     }
     with open(SUMMARY_PATH, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
     print(f"\nSaved {SUMMARY_PATH}")
-    write_audit_sheet(audit_rows(ranked, test_records, label_counts))
+    write_audit_sheet(audit_rows(ranked, test_records, label_counts), AUDIT_PATH)
+    write_audit_sheet(audit_rows(correct, test_records, label_counts, count_key="found_by_all"), CORRECT_PATH)
 
 
 if __name__ == "__main__":
