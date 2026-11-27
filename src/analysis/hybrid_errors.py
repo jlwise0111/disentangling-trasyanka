@@ -9,8 +9,15 @@ both standard languages) on the Trasyanka test families:
     2. for every gold HYBRID word, which models missed it; words every model misses are the
        hard cases rather than one model's weakness;
     3. the hybrid word forms missed most often, ranked, written to an audit sheet with their
-       sentence, the %mor BE / RU lemmas, POS and features, and empty columns for the
-       error category and notes (filled in with the native-speaker partner).
+       sentence, the %mor BE / RU lemmas, POS and features, how the form is labeled in the
+       training data, and empty columns for the error category and notes (filled in with the
+       native-speaker partner).
+
+Training status of a form, from the mixed training data the four models saw (TRAINING):
+    unseen            the form never occurs in training
+    always HYBRID     every training occurrence is HYBRID
+    sometimes HYBRID  HYBRID and other labels (the same spelling, different words or uses)
+    never HYBRID      it occurs, but never as HYBRID
 
 No confidence scores yet: the ranking uses how many models miss a word and how often.
 
@@ -22,18 +29,20 @@ Run from the project root:   python src/analysis/hybrid_errors.py
 import sys
 import csv
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(PROJECT_ROOT))
 
-from src.baseline.splits import trasyanka_split, RESULTS_DIR
+from src.baseline.splits import trasyanka_split, training_sentences, RESULTS_DIR
 from src.analysis.compare_models import load_predictions
 
 # Short model name -> its mixed run (100 % of the Trasyanka training data)
 AUDIT_RUNS = {"crf": "crf_tuned_mixed", "bilstm": "bilstm_mixed",
               "xlmr": "xlmr_mixed", "slavicbert": "slavicbert_mixed"}
+TRAINING = ("mixed", 1.0)       # the (setting, fraction) the audited runs were trained on
+TRAIN_STATUSES = ("unseen", "always HYBRID", "sometimes HYBRID", "never HYBRID")
 TOP_N = 20
 SUMMARY_PATH = RESULTS_DIR / "hybrid_errors.json"
 AUDIT_PATH = RESULTS_DIR / "hybrid_audit.csv"
@@ -53,6 +62,30 @@ def load_runs(test_records):
         assert [r["id"] for r in records] == [r["id"] for r in test_records], f"{name}: sentence order differs"
         runs[model] = records
     return runs
+
+
+def training_label_counts(setting=TRAINING[0], fraction=TRAINING[1]):
+    """{token: Counter of its gold labels} over the training data of one setting."""
+    counts = defaultdict(Counter)
+    for record in training_sentences(setting, fraction):
+        for token, label in zip(record["tokens"], record["labels"]):
+            counts[token][label] += 1
+    return counts
+
+
+def train_status(token, label_counts):
+    """One of TRAIN_STATUSES for a token, from training_label_counts()."""
+    labels = label_counts.get(token)        # .get: looking up a missing key must not add it
+    if not labels:
+        return "unseen"
+    if "HYBRID" not in labels:
+        return "never HYBRID"
+    return "always HYBRID" if len(labels) == 1 else "sometimes HYBRID"
+
+
+def format_counts(counter):
+    """'SHARED 6, HYBRID 1' (most common first), '' for an empty counter."""
+    return ", ".join(f"{label} {n}" for label, n in counter.most_common())
 
 
 def hybrid_confusion(records):
@@ -135,20 +168,26 @@ def sentence_with_mark(words, j):
     return " ".join(f"[{word}]" if k == j else word for k, word in enumerate(words))
 
 
-def audit_rows(ranked, test_records):
-    """One row per ranked word form, with the context the audit needs and empty columns to fill in."""
+def audit_rows(ranked, test_records, label_counts):
+    """
+    One row per ranked word form, with the context the audit needs and empty columns to fill in.
+    label_counts comes from training_label_counts().
+    """
     rows = []
     for rank, form in enumerate(ranked, start=1):
         error = form["first_missed_by_all"]
         record = test_records[error["sentence"]]
         j = error["word"]
+        token = form["token"]
         rows.append({
             "rank": rank,
-            "token": form["token"],
+            "token": token,
             "cyrillic": record["cyrillic"][j],
             "raw": record["raw"][j],                       # with the reduced-vowel marks
             "occurrences": form["occurrences"],
             "missed_by_all": form["missed_by_all"],
+            "train_status": train_status(token, label_counts),
+            "train_labels": format_counts(label_counts.get(token, Counter())),
             **{f"pred_{model}": label for model, label in error["predictions"].items()},
             "be_lemma": record["be_lemma"][j] or "",
             "ru_lemma": record["ru_lemma"][j] or "",
@@ -180,37 +219,48 @@ def main():
     for model, records in runs.items():
         c = hybrid_confusion(records)
         confusions[model] = c
-        missed = ", ".join(f"{label} {n}" for label, n in c["missed_as"].most_common())
-        false = ", ".join(f"{label} {n}" for label, n in c["false_hybrid"].most_common())
+        missed, false = format_counts(c["missed_as"]), format_counts(c["false_hybrid"])
         print(f"  {model:<11}{c['gold_hybrid']:>6}{c['correct']:>9}{c['correct'] / c['gold_hybrid']:>8.2f}"
               f"   {missed:<31}{false} ({sum(c['false_hybrid'].values())})")
 
     errors = hybrid_word_errors(test_records, runs)
+    label_counts = training_label_counts()
     by_count = Counter(len(error["missed_by"]) for error in errors)
-    print(f"\nGold HYBRID words by how many of the {len(runs)} models miss them")
+    # {number of models missing the word: Counter of the training status of its form}
+    status_by_count = defaultdict(Counter)
+    for error in errors:
+        status_by_count[len(error["missed_by"])][train_status(error["token"], label_counts)] += 1
+    print(f"\nGold HYBRID words by how many of the {len(runs)} models miss them, and the training status of the form")
+    print(f"  {'':<12}{'words':>7}{'':<7}" + "".join(f"{status:>18}" for status in TRAIN_STATUSES))
     for k in range(len(runs) + 1):
-        print(f"  missed by {k}: {by_count[k]:>5}  ({by_count[k] / len(errors):.1%})")
+        shares = "".join(f"{status_by_count[k][status] / max(by_count[k], 1):>18.0%}" for status in TRAIN_STATUSES)
+        print(f"  missed by {k}:{by_count[k]:>7} ({by_count[k] / len(errors):>4.0%}){shares}")
 
     ranked = rank_word_forms(errors)
     print(f"\nTop {len(ranked)} hybrid forms missed by every model")
-    print(f"  {'token':<18}{'occurrences':>12}{'missed by all':>15}   predictions (first such occurrence)")
+    print(f"  {'token':<18}{'occurrences':>12}{'missed by all':>15}   {'training':<18}predictions (first such occurrence)")
     for form in ranked:
         predictions = " ".join(f"{model}={label}" for model, label in
                                form["first_missed_by_all"]["predictions"].items())
-        print(f"  {form['token']:<18}{form['occurrences']:>12}{form['missed_by_all']:>15}   {predictions}")
+        print(f"  {form['token']:<18}{form['occurrences']:>12}{form['missed_by_all']:>15}   "
+              f"{train_status(form['token'], label_counts):<18}{predictions}")
 
     summary = {
         "runs": AUDIT_RUNS,
+        "training": {"setting": TRAINING[0], "fraction": TRAINING[1]},
         "confusion": {model: {"gold_hybrid": c["gold_hybrid"], "correct": c["correct"],
                               "missed_as": dict(c["missed_as"]), "false_hybrid": dict(c["false_hybrid"])}
                       for model, c in confusions.items()},
         "missed_by_count": {str(k): by_count[k] for k in range(len(runs) + 1)},
-        "top_forms": [{key: form[key] for key in ("token", "occurrences", "missed_by_all")} for form in ranked],
+        "train_status_by_missed_count": {str(k): dict(status_by_count[k]) for k in range(len(runs) + 1)},
+        "top_forms": [{"token": form["token"], "occurrences": form["occurrences"],
+                       "missed_by_all": form["missed_by_all"], "train_status": train_status(form["token"], label_counts)}
+                      for form in ranked],
     }
     with open(SUMMARY_PATH, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
     print(f"\nSaved {SUMMARY_PATH}")
-    write_audit_sheet(audit_rows(ranked, test_records))
+    write_audit_sheet(audit_rows(ranked, test_records, label_counts))
 
 
 if __name__ == "__main__":

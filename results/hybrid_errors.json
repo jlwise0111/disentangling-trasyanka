@@ -5,6 +5,10 @@
     "xlmr": "xlmr_mixed",
     "slavicbert": "slavicbert_mixed"
   },
+  "training": {
+    "setting": "mixed",
+    "fraction": 1.0
+  },
   "confusion": {
     "crf": {
       "gold_hybrid": 1205,
@@ -70,106 +74,154 @@
     "3": 95,
     "4": 200
   },
+  "train_status_by_missed_count": {
+    "0": {
+      "always HYBRID": 497,
+      "unseen": 40,
+      "sometimes HYBRID": 75
+    },
+    "1": {
+      "sometimes HYBRID": 33,
+      "always HYBRID": 55,
+      "unseen": 80
+    },
+    "2": {
+      "always HYBRID": 37,
+      "unseen": 63,
+      "sometimes HYBRID": 30
+    },
+    "3": {
+      "unseen": 61,
+      "always HYBRID": 15,
+      "sometimes HYBRID": 19
+    },
+    "4": {
+      "unseen": 145,
+      "never HYBRID": 18,
+      "sometimes HYBRID": 34,
+      "always HYBRID": 3
+    }
+  },
   "top_forms": [
     {
       "token": "havaryc´",
       "occurrences": 21,
-      "missed_by_all": 18
+      "missed_by_all": 18,
+      "train_status": "sometimes HYBRID"
     },
     {
       "token": "s",
       "occurrences": 27,
-      "missed_by_all": 7
+      "missed_by_all": 7,
+      "train_status": "sometimes HYBRID"
     },
     {
       "token": "sabralas´",
       "occurrences": 5,
-      "missed_by_all": 4
+      "missed_by_all": 4,
+      "train_status": "unseen"
     },
     {
       "token": "ihrajuc´",
       "occurrences": 3,
-      "missed_by_all": 3
+      "missed_by_all": 3,
+      "train_status": "sometimes HYBRID"
     },
     {
       "token": "maloj",
       "occurrences": 3,
-      "missed_by_all": 3
+      "missed_by_all": 3,
+      "train_status": "sometimes HYBRID"
     },
     {
       "token": "paluč´ac´",
       "occurrences": 3,
-      "missed_by_all": 3
+      "missed_by_all": 3,
+      "train_status": "unseen"
     },
     {
       "token": "plaxi",
       "occurrences": 3,
-      "missed_by_all": 3
+      "missed_by_all": 3,
+      "train_status": "unseen"
     },
     {
       "token": "zdzelaje",
       "occurrences": 4,
-      "missed_by_all": 2
+      "missed_by_all": 2,
+      "train_status": "unseen"
     },
     {
       "token": "atvič´aje",
       "occurrences": 2,
-      "missed_by_all": 2
+      "missed_by_all": 2,
+      "train_status": "unseen"
     },
     {
       "token": "bal´šénnyje",
       "occurrences": 2,
-      "missed_by_all": 2
+      "missed_by_all": 2,
+      "train_status": "unseen"
     },
     {
       "token": "davec´",
       "occurrences": 2,
-      "missed_by_all": 2
+      "missed_by_all": 2,
+      "train_status": "unseen"
     },
     {
       "token": "najšla",
       "occurrences": 2,
-      "missed_by_all": 2
+      "missed_by_all": 2,
+      "train_status": "never HYBRID"
     },
     {
       "token": "pryhatove",
       "occurrences": 2,
-      "missed_by_all": 2
+      "missed_by_all": 2,
+      "train_status": "unseen"
     },
     {
       "token": "sjam´´je",
       "occurrences": 2,
-      "missed_by_all": 2
+      "missed_by_all": 2,
+      "train_status": "always HYBRID"
     },
     {
       "token": "vučyles´",
       "occurrences": 2,
-      "missed_by_all": 2
+      "missed_by_all": 2,
+      "train_status": "unseen"
     },
     {
       "token": "zastaúljaje",
       "occurrences": 2,
-      "missed_by_all": 2
+      "missed_by_all": 2,
+      "train_status": "never HYBRID"
     },
     {
       "token": "étum",
       "occurrences": 2,
-      "missed_by_all": 2
+      "missed_by_all": 2,
+      "train_status": "unseen"
     },
     {
       "token": "čevo-ta",
       "occurrences": 2,
-      "missed_by_all": 2
+      "missed_by_all": 2,
+      "train_status": "unseen"
     },
     {
       "token": "čévo",
       "occurrences": 2,
-      "missed_by_all": 2
+      "missed_by_all": 2,
+      "train_status": "unseen"
     },
     {
       "token": "nečyha",
       "occurrences": 4,
-      "missed_by_all": 1
+      "missed_by_all": 1,
+      "train_status": "sometimes HYBRID"
     }
   ]
 }

@@ -70,7 +70,7 @@ def train_one_epoch(model, loader, optimizer, loss_fn):
     for chars, labels, word_mask in loader:
         optimizer.zero_grad()
         scores = model(chars, word_mask)
-        # CrossEntropyLoss wants [N, classes] and [N]; positions labelled PAD_LABEL are skipped
+        # CrossEntropyLoss wants [N, classes] and [N]; positions labeled PAD_LABEL are skipped
         loss = loss_fn(scores.reshape(-1, NUM_LABELS), labels.reshape(-1))
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), GRAD_CLIP)
