@@ -10,8 +10,7 @@ both standard languages) on the Trasyanka test families:
        hard cases rather than one model's weakness;
     3. the hybrid word forms missed most often, ranked, written to an audit sheet with their
        sentence, the %mor BE / RU lemmas, POS and features, how the form is labeled in the
-       training data, and empty columns for the error category and notes (filled in with the
-       native-speaker partner).
+       training data, and empty columns for the native-speaker partner (AUDIT_COLUMNS).
 
 Training status of a form, from the mixed training data the four models saw (TRAINING):
     unseen            the form never occurs in training
@@ -44,6 +43,13 @@ AUDIT_RUNS = {"crf": "crf_tuned_mixed", "bilstm": "bilstm_mixed",
 TRAINING = ("mixed", 1.0)       # the (setting, fraction) the audited runs were trained on
 TRAIN_STATUSES = ("unseen", "always HYBRID", "sometimes HYBRID", "never HYBRID")
 TOP_N = 20
+# Filled in during the audit, one answer per row; fixed answers so they can be counted afterwards
+AUDIT_COLUMNS = {
+    "is_hybrid": "yes / no / unsure: is this word HYBRID in this sentence?",
+    "stem_language": "RU / BE / unclear: the language of the stem",
+    "mixed_part": "ending / sounds / both / other: what comes from the other language",
+    "notes": "free text",
+}
 SUMMARY_PATH = RESULTS_DIR / "hybrid_errors.json"
 AUDIT_PATH = RESULTS_DIR / "hybrid_audit.csv"
 
@@ -195,8 +201,7 @@ def audit_rows(ranked, test_records, label_counts):
             "feats": record["feats"][j] or "",
             "sentence_id": record["id"],
             "sentence": sentence_with_mark(record["tokens"], j),
-            "category": "",                                # filled in during the audit
-            "notes": "",
+            **{column: "" for column in AUDIT_COLUMNS},   # filled in during the audit
         })
     return rows
 
