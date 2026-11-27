@@ -9,9 +9,9 @@ results/figures/, sized for a 16:9 slide:
     4. hybrid_misses.png     gold HYBRID words by how many models miss them, split by whether
                              the word form was seen in training
 
-Colours: one fixed colour and marker per model in every figure (a validated colour-blind-safe
+Colours: one fixed color and marker per model in every figure (a validated color-blind-safe
 categorical order), so CRF is always blue circles, BiLSTM orange squares, XLM-R aqua diamonds,
-SlavicBERT yellow triangles. Lines are labelled directly at their right end as well.
+SlavicBERT yellow triangles. Lines are labeled directly at their right end as well.
 
 Run from the project root:   python src/analysis/make_figures.py
 """
@@ -41,10 +41,10 @@ STRESS_SETS = ["Russian\n(written)", "Belarusian\n(official)", "Taraškievica\n(
 STRESS_KEYS = ["ru_test", "be_official", "taraskievica", "trasyanka_3"]   # stress_row keys, same order
 
 # Validated categorical order (blue, orange, aqua, yellow), one per model, plus a marker each
-# so identity never depends on colour alone
+# so identity never depends on color alone
 COLORS = {"CRF": "#2a78d6", "BiLSTM": "#eb6834", "XLM-R": "#1baf7a", "SlavicBERT": "#eda100"}
 MARKERS = {"CRF": "o", "BiLSTM": "s", "XLM-R": "D", "SlavicBERT": "^"}
-SURFACE, INK, INK_2, MUTED, GRID, AXIS = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+SURFACE, INK, INK_2, MUTED, GRID, AXIS = "#ffffff", "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
 
 
 def learning_curve(prefix, metric):
@@ -98,8 +98,9 @@ def style():
     """Quiet chart chrome: light surface, hairline y grid, no top/right frame, system sans."""
     plt.rcParams.update({
         "figure.facecolor": SURFACE, "axes.facecolor": SURFACE, "savefig.facecolor": SURFACE,
-        "font.family": "sans-serif", "font.sans-serif": ["Segoe UI", "DejaVu Sans", "Arial"],
-        "font.size": 13, "axes.titlesize": 15, "axes.titleweight": "semibold", "axes.titlecolor": INK,
+        # Calibri: the body font of the presentation slides
+        "font.family": "sans-serif", "font.sans-serif": ["Calibri", "Segoe UI", "DejaVu Sans", "Arial"],
+        "font.size": 13, "axes.titlesize": 15, "axes.titleweight": "bold", "axes.titlecolor": INK,
         "axes.labelcolor": INK_2, "xtick.color": INK_2, "ytick.color": INK_2,
         "axes.edgecolor": AXIS, "axes.spines.top": False, "axes.spines.right": False,
         "axes.grid": True, "axes.grid.axis": "y", "grid.color": GRID, "grid.linewidth": 0.8,
@@ -149,7 +150,7 @@ def main_results(path):
     for i, (model, prefix) in enumerate(MODELS.items()):
         values = [load_results(run_name(prefix, s, 1.0))["trasyanka_test"]["macro_f1"] for s, _ in settings]
         xs = [k + (i - 1.5) * width for k in range(len(settings))]
-        # edgecolor = surface: a 2px gap between neighbouring bars
+        # edgecolor = surface: a 2px gap between neighboring bars
         ax.bar(xs, values, width, color=COLORS[model], edgecolor=SURFACE, linewidth=2, label=model)
     # Label only the best bar of each setting
     for k, (setting, _) in enumerate(settings):
@@ -157,7 +158,7 @@ def main_results(path):
         best = max(scores, key=scores.get)
         i = list(MODELS).index(best)
         ax.annotate(f"{scores[best]:.3f}", (k + (i - 1.5) * width, scores[best]), xytext=(0, 4),
-                    textcoords="offset points", ha="center", color=INK, fontsize=12, fontweight="semibold")
+                    textcoords="offset points", ha="center", color=INK, fontsize=12, fontweight="bold")
     ax.set_xticks(range(len(settings)), [label for _, label in settings])
     ax.set_ylim(0, 1)
     ax.set_ylabel("Macro-F1 (BE, RU, SHARED, HYBRID)")
@@ -216,11 +217,13 @@ def stress_figure(path):
 def hybrid_misses_figure(path):
     with open(RESULTS_DIR / "hybrid_errors.json", encoding="utf-8") as f:
         by_count = json.load(f)["train_status_by_missed_count"]
-    # Unseen forms are the story, so they get the strong colour; seen forms are shades of blue / grey
+    # Unseen forms are the story, so they get the strong orange; seen forms are shades of the
+    # presentation's HYBRID purple (not blue, which the models use), never-HYBRID is gray
     statuses = [("unseen", "form unseen in training", "#eb6834"),
-                ("always HYBRID", "always HYBRID in training", "#2a78d6"),
-                ("sometimes HYBRID", "sometimes HYBRID", "#86b6ef"),
+                ("always HYBRID", "always HYBRID in training", "#8a3d86"),
+                ("sometimes HYBRID", "sometimes HYBRID", "#c27bbe"),
                 ("never HYBRID", "never HYBRID", "#c3c2b7")]
+    dark_fills = {"#eb6834", "#8a3d86"}                             # white text on these, ink on the rest
     rows = [str(k) for k in range(5)]
     fig, ax = plt.subplots(figsize=(11, 5.0))
     left = [0] * len(rows)
@@ -231,7 +234,7 @@ def hybrid_misses_figure(path):
             if w >= 45:                                             # label only segments wide enough
                 total = sum(by_count[rows[y]].values())
                 ax.text(x0 + w / 2, y, f"{w / total:.0%}", ha="center", va="center", fontsize=11,
-                        color="#ffffff" if color != "#c3c2b7" and color != "#86b6ef" else INK)
+                        color="#ffffff" if color in dark_fills else INK)
         left = [a + b for a, b in zip(left, widths)]
     ax.set_yticks(range(len(rows)), [f"missed by {k}" for k in rows])
     ax.invert_yaxis()
